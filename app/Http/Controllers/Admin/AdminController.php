@@ -215,7 +215,7 @@ class AdminController extends Controller
     // USERS (DOCTORS & REGISTRARS) CRUD
     public function users(): View
     {
-        $users = User::whereIn('role', [2, 3])->paginate(15);
+        $users = User::whereIn('role', [2, 3, 4])->paginate(15);
         return view('admin.users.index', compact('users'));
     }
 
