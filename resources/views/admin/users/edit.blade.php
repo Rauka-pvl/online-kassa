@@ -63,8 +63,9 @@
                             <select class="form-select @error('role') is-invalid @enderror"
                                     id="role" name="role" required>
                                 <option value="">Выберите роль</option>
-                                <option value="2" {{ old('role', $user->role) == '2' ? 'selected' : '' }}>Врач</option>
+                                <option value="2" {{ old('role', $user->role) == '2' ? 'selected' : '' }}>Бухгалтер</option>
                                 <option value="3" {{ old('role', $user->role) == '3' ? 'selected' : '' }}>Регистратор</option>
+                                <option value="4" {{ old('role', $user->role) == '4' ? 'selected' : '' }}>Врач</option>
                             </select>
                             @error('role')
                                 <div class="invalid-feedback">{{ $message }}</div>
