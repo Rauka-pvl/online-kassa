@@ -232,7 +232,7 @@ class AdminController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:2,3,4',
             'specialization' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:255',
             'is_active' => 'boolean'
         ]);
 
