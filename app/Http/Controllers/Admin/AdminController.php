@@ -226,7 +226,7 @@ class AdminController extends Controller
 
     public function storeUser(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validation = $request->validate([
             'name' => 'required|string|max:255',
             'login' => 'required|string|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
@@ -236,10 +236,9 @@ class AdminController extends Controller
             'is_active' => 'boolean'
         ]);
 
-        $data = $request->all();
-        $data['password'] = Hash::make($request->password);
+        $validation['password'] = Hash::make($request->password);
 
-        User::create($data);
+        User::create($validation);
 
         return redirect()->route('admin.users')->with('success', 'Пользователь успешно создан');
     }
