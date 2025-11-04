@@ -67,16 +67,6 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="duration" class="form-label">Длительность (мин)</label>
-                            <input type="number" class="form-control @error('duration') is-invalid @enderror"
-                                   id="duration" name="duration" value="{{ old('duration', $service->duration) }}" min="1">
-                            @error('duration')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div class="form-text">Оставьте пустым, если услуга без времени</div>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
                             <label class="form-label">Статус</label>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="is_active"

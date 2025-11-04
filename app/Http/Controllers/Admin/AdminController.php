@@ -177,7 +177,6 @@ class AdminController extends Controller
             'sub_catalog_id' => 'required|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'duration' => 'nullable|integer|min:1',
             'is_active' => 'boolean'
         ]);
 
@@ -199,7 +198,6 @@ class AdminController extends Controller
             'sub_catalog_id' => 'required|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'duration' => 'nullable|integer|min:1',
             'is_active' => 'boolean'
         ]);
 
