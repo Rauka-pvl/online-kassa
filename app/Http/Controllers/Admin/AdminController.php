@@ -255,7 +255,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'login' => 'required|string|max:255|unique:users,login,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|in:2,3',
+            'role' => 'required|in:2,3,4',
             'specialization' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'boolean'
