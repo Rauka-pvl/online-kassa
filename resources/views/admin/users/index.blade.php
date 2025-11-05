@@ -11,6 +11,59 @@
     </div>
 </div>
 
+<!-- Поиск и фильтры -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.users') }}" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Поиск по имени, логину, телефону, специализации..." 
+                       value="{{ request('search') }}">
+            </div>
+            <div class="col-md-2">
+                <select name="role_filter" class="form-select">
+                    <option value="">Все роли</option>
+                    <option value="2" {{ request('role_filter') == '2' ? 'selected' : '' }}>Бухгалтер</option>
+                    <option value="3" {{ request('role_filter') == '3' ? 'selected' : '' }}>Регистратор</option>
+                    <option value="4" {{ request('role_filter') == '4' ? 'selected' : '' }}>Врач</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status_filter" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="active" {{ request('status_filter') == 'active' ? 'selected' : '' }}>Активные</option>
+                    <option value="inactive" {{ request('status_filter') == 'inactive' ? 'selected' : '' }}>Неактивные</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort_by" class="form-select">
+                    <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>Сортировка: ID</option>
+                    <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>По имени</option>
+                    <option value="login" {{ request('sort_by') == 'login' ? 'selected' : '' }}>По логину</option>
+                    <option value="role" {{ request('sort_by') == 'role' ? 'selected' : '' }}>По роли</option>
+                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort_order" class="form-select">
+                    <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>По убыванию</option>
+                    <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию</option>
+                </select>
+            </div>
+            <div class="col-md-12">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                    @if(request()->anyFilled(['search', 'role_filter', 'status_filter', 'sort_by', 'sort_order']))
+                        <a href="{{ route('admin.users') }}" class="btn btn-outline-secondary">Сбросить</a>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">

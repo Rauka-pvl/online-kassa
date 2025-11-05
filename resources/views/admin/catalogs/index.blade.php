@@ -10,6 +10,44 @@
     </div>
 </div>
 
+<!-- Поиск и сортировка -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.catalogs') }}" class="row g-3">
+            <div class="col-md-6">
+                <input type="text"
+                       name="search"
+                       class="form-control"
+                       placeholder="Поиск по названию или описанию..."
+                       value="{{ request('search') }}">
+            </div>
+            <div class="col-md-3">
+                <select name="sort_by" class="form-select">
+                    <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>Сортировка: ID</option>
+                    <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>По названию</option>
+                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort_order" class="form-select">
+                    <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>По убыванию</option>
+                    <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                </div>
+            </div>
+            @if(request()->anyFilled(['search', 'sort_by', 'sort_order']))
+                <div class="col-md-12">
+                    <a href="{{ route('admin.catalogs') }}" class="btn btn-outline-secondary btn-sm">Сбросить</a>
+                </div>
+            @endif
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -17,7 +55,7 @@
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Изображение</th>
+                        {{-- <th>Изображение</th> --}}
                         <th>Название</th>
                         <th>Описание</th>
                         <th>Подкаталоги</th>
@@ -29,14 +67,14 @@
                     @forelse($catalogs as $catalog)
                         <tr>
                             <td>{{ $catalog->id }}</td>
-                            <td>
+                            {{-- <td>
                                 @if($catalog->image)
                                     <img src="{{ Storage::url($catalog->image) }}" alt="{{ $catalog->name }}"
                                          class="img-thumbnail" style="max-width: 50px; max-height: 50px;">
                                 @else
                                     <span class="text-muted">Нет изображения</span>
                                 @endif
-                            </td>
+                            </td> --}}
                             <td>
                                 <strong>{{ $catalog->name }}</strong>
                             </td>

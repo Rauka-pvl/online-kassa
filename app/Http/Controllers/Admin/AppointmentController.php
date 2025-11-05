@@ -27,7 +27,6 @@ class AppointmentController extends Controller
                 date('Y-m-d', strtotime($date . ' +1 days')),
                 date('Y-m-d', strtotime($date . ' +0 days')),
             ];
-            // dd($dateRange);
         } else {
             $date = date('Y-m-d');
             $end_date = date('Y-m-d', strtotime($date . ' +4 days'));
@@ -40,7 +39,8 @@ class AppointmentController extends Controller
                 date('Y-m-d', strtotime($date . ' +0 days')),
             ];
         }
-        $schedules = Schedule::with(['appointments', 'user'])
+        
+        $schedulesQuery = Schedule::with(['appointments', 'user'])
             ->where(function ($q) use ($dateRange) {
                 $q->whereBetween('start_date', [$dateRange[0], end($dateRange)])
                     ->orWhereBetween('end_date', [$dateRange[0], end($dateRange)])
@@ -48,10 +48,64 @@ class AppointmentController extends Controller
                         $q2->where('start_date', '<=', $dateRange[0])
                             ->where('end_date', '>=', end($dateRange));
                     });
-            })
-            ->paginate(10);
-        $doctors = User::where('role', 4)->get(); // Получаем всех пользователей с ролью "Врач" (role = 4)
-        // dd($schedules[1]->generateTimeSlots('2025-10-01'));
+            });
+        
+        // Поиск по врачу
+        if ($request->filled('doctor_search')) {
+            $doctorSearch = $request->doctor_search;
+            $schedulesQuery->whereHas('user', function ($q) use ($doctorSearch) {
+                $q->where('name', 'like', '%' . $doctorSearch . '%');
+            });
+        }
+        
+        // Поиск по пациенту (ФИО, телефон, ИИН)
+        if ($request->filled('patient_search')) {
+            $patientSearch = $request->patient_search;
+            $schedulesQuery->whereHas('appointments', function ($q) use ($patientSearch) {
+                $q->where('client_name', 'like', '%' . $patientSearch . '%')
+                  ->orWhere('client_phone', 'like', '%' . $patientSearch . '%')
+                  ->orWhere('patient_iin', 'like', '%' . $patientSearch . '%');
+            });
+        }
+        
+        // Фильтр по врачу
+        if ($request->filled('doctor_filter')) {
+            $schedulesQuery->where('user_id', $request->doctor_filter);
+        }
+        
+        // Фильтр по статусу записей
+        if ($request->filled('status_filter')) {
+            $schedulesQuery->whereHas('appointments', function ($q) use ($request) {
+                $q->where('status', $request->status_filter);
+            });
+        }
+        
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'created_at', 'start_date', 'end_date'];
+        
+        if ($sortBy === 'doctor_name') {
+            // Сортировка по имени врача через join с избежанием дубликатов
+            $schedulesQuery->leftJoin('users', 'schedules.user_id', '=', 'users.id')
+                          ->select('schedules.*')
+                          ->orderBy('users.name', $sortOrder)
+                          ->groupBy('schedules.id');
+        } elseif ($sortBy === 'appointment_date') {
+            // Сортировка по дате записи через подзапрос или join
+            $schedulesQuery->leftJoin('appointments', 'schedules.id', '=', 'appointments.schedule_id')
+                          ->select('schedules.*')
+                          ->orderBy('appointments.appointment_date', $sortOrder)
+                          ->groupBy('schedules.id');
+        } elseif (in_array($sortBy, $allowedSorts)) {
+            $schedulesQuery->orderBy('schedules.' . $sortBy, $sortOrder);
+        } else {
+            // По умолчанию сортировка по ID
+            $schedulesQuery->orderBy('schedules.id', $sortOrder);
+        }
+        
+        $schedules = $schedulesQuery->paginate(10)->withQueryString();
+        $doctors = User::where('role', 4)->get();
         return view('admin.appointments.index', compact('schedules', 'doctors', 'date'));
     }
 

@@ -42,9 +42,28 @@ class AdminController extends Controller
     }
 
     // CATALOGS CRUD
-    public function catalogs(): View
+    public function catalogs(Request $request): View
     {
-        $catalogs = Catalog::with('subCatalogs')->paginate(15);
+        $query = Catalog::with('subCatalogs');
+
+        // Поиск
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'name', 'created_at'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $catalogs = $query->paginate(15)->withQueryString();
         return view('admin.catalogs.index', compact('catalogs'));
     }
 
@@ -109,10 +128,32 @@ class AdminController extends Controller
     }
 
     // SUB CATALOGS CRUD
-    public function subCatalogs(): View
+    public function subCatalogs(Request $request): View
     {
-        $subCatalogs = SubCatalog::with('catalog')->paginate(15);
-        return view('admin.subcatalogs.index', compact('subCatalogs'));
+        $query = SubCatalog::with('catalog');
+
+        // Поиск
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        // Фильтр по каталогу
+        if ($request->filled('catalog_filter')) {
+            $query->where('catalog_id', $request->catalog_filter);
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'name', 'catalog_id', 'created_at'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $subCatalogs = $query->paginate(15)->withQueryString();
+        $catalogs = Catalog::all(); // Для фильтра
+        return view('admin.subcatalogs.index', compact('subCatalogs', 'catalogs'));
     }
 
     public function createSubCatalog(): View
@@ -158,10 +199,48 @@ class AdminController extends Controller
     }
 
     // SERVICES CRUD
-    public function services(): View
+    public function services(Request $request): View
     {
-        $services = Service::with(['subCatalog.catalog'])->paginate(15);
-        return view('admin.services.index', compact('services'));
+        $query = Service::with(['subCatalog.catalog']);
+
+        // Поиск
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Фильтр по подкаталогу
+        if ($request->filled('subcatalog_filter')) {
+            $query->where('sub_catalog_id', $request->subcatalog_filter);
+        }
+
+        // Фильтр по каталогу
+        if ($request->filled('catalog_filter')) {
+            $query->whereHas('subCatalog', function ($q) use ($request) {
+                $q->where('catalog_id', $request->catalog_filter);
+            });
+        }
+
+        // Фильтр по статусу
+        if ($request->filled('status_filter')) {
+            $query->where('is_active', $request->status_filter == 'active' ? 1 : 0);
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'name', 'price', 'created_at'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $services = $query->paginate(15)->withQueryString();
+        $subCatalogs = SubCatalog::with('catalog')->get();
+        $catalogs = Catalog::all();
+        return view('admin.services.index', compact('services', 'subCatalogs', 'catalogs'));
     }
 
     public function createService(): View
@@ -213,9 +292,40 @@ class AdminController extends Controller
     }
 
     // USERS (DOCTORS & REGISTRARS) CRUD
-    public function users(): View
+    public function users(Request $request): View
     {
-        $users = User::whereIn('role', [2, 3, 4])->paginate(15);
+        $query = User::whereIn('role', [2, 3, 4]);
+
+        // Поиск
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('login', 'like', '%' . $search . '%')
+                    ->orWhere('phone', 'like', '%' . $search . '%')
+                    ->orWhere('specialization', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Фильтр по роли
+        if ($request->filled('role_filter')) {
+            $query->where('role', $request->role_filter);
+        }
+
+        // Фильтр по статусу
+        if ($request->filled('status_filter')) {
+            $query->where('is_active', $request->status_filter == 'active' ? 1 : 0);
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'name', 'login', 'role', 'created_at'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $users = $query->paginate(15)->withQueryString();
         return view('admin.users.index', compact('users'));
     }
 
@@ -279,17 +389,68 @@ class AdminController extends Controller
     }
 
     // SCHEDULES CRUD
-    public function schedules(): View
+    public function schedules(Request $request): View
     {
-        $schedules = Schedule::with(['user', 'services'])->paginate(15);
+        $query = Schedule::with(['user', 'services']);
+
+        // Поиск по имени врача
+        if ($request->filled('doctor_search')) {
+            $searchTerm = $request->doctor_search;
+            $query->whereHas('user', function ($q) use ($searchTerm) {
+                $q->where('name', 'like', '%' . $searchTerm . '%');
+            });
+        }
+
+        // Фильтр по статусу
+        if ($request->filled('status_filter')) {
+            $query->where('is_active', $request->status_filter == 'active' ? 1 : 0);
+        }
+
+        // Сортировка
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $allowedSorts = ['id', 'created_at', 'start_date', 'end_date'];
+
+        if ($sortBy === 'doctor_name') {
+            // Сортировка по имени врача через join с избежанием дубликатов
+            $query->leftJoin('users', 'schedules.user_id', '=', 'users.id')
+                ->select('schedules.*')
+                ->orderBy('users.name', $sortOrder)
+                ->groupBy('schedules.id');
+        } elseif (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy('schedules.' . $sortBy, $sortOrder);
+        }
+
+        $schedules = $query->paginate(15)->withQueryString();
         return view('admin.schedules.index', compact('schedules'));
     }
 
     public function createSchedule(): View
     {
         $doctors = User::where('role', 4)->where('is_active', true)->get();
-        $services = Service::where('is_active', true)->get();
-        return view('admin.schedules.create', compact('doctors', 'services'));
+
+        // Загружаем каталоги с подкаталогами и активными услугами
+        $catalogs = Catalog::with([
+            'subCatalogs.services' => function ($query) {
+                $query->where('is_active', true);
+            }
+        ])
+            ->whereHas('subCatalogs.services', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->get();
+
+        // Фильтруем подкаталоги без активных услуг на уровне коллекции
+        $catalogs->each(function ($catalog) {
+            $catalog->setRelation(
+                'subCatalogs',
+                $catalog->subCatalogs->filter(function ($subCatalog) {
+                    return $subCatalog->services->count() > 0;
+                })
+            );
+        });
+
+        return view('admin.schedules.create', compact('doctors', 'catalogs'));
     }
 
     public function storeSchedule(Request $request): RedirectResponse
@@ -349,8 +510,29 @@ class AdminController extends Controller
     public function editSchedule(Schedule $schedule): View
     {
         $doctors = User::where('role', 4)->where('is_active', true)->get();
-        $services = Service::where('is_active', true)->get();
-        return view('admin.schedules.edit', compact('schedule', 'doctors', 'services'));
+
+        // Загружаем каталоги с подкаталогами и активными услугами
+        $catalogs = Catalog::with([
+            'subCatalogs.services' => function ($query) {
+                $query->where('is_active', true);
+            }
+        ])
+            ->whereHas('subCatalogs.services', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->get();
+
+        // Фильтруем подкаталоги без активных услуг на уровне коллекции
+        $catalogs->each(function ($catalog) {
+            $catalog->setRelation(
+                'subCatalogs',
+                $catalog->subCatalogs->filter(function ($subCatalog) {
+                    return $subCatalog->services->count() > 0;
+                })
+            );
+        });
+
+        return view('admin.schedules.edit', compact('schedule', 'doctors', 'catalogs'));
     }
 
     public function updateSchedule(Request $request, Schedule $schedule): RedirectResponse

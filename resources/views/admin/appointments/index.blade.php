@@ -27,36 +27,79 @@
         </div>
     </div> --}}
 
-    <!-- Панель поиска пациентов -->
+    <!-- Панель поиска и фильтров -->
     <div class="card mb-3">
-        <div class="card-body py-2">
-            <div class="row align-items-center">
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">Поиск пациента:</span>
-                        <input type="text" class="form-control" placeholder="Введите ФИО или телефон пациента">
-                        <button class="btn btn-outline-secondary" type="button">Поиск</button>
-                    </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.appointments') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">Поиск по врачу:</label>
+                    <input type="text" 
+                           name="doctor_search" 
+                           class="form-control form-control-sm" 
+                           placeholder="Имя врача..." 
+                           value="{{ request('doctor_search') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Поиск по пациенту:</label>
+                    <input type="text" 
+                           name="patient_search" 
+                           class="form-control form-control-sm" 
+                           placeholder="ФИО, телефон или ИИН..." 
+                           value="{{ request('patient_search') }}">
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-sm btn-outline-secondary">Очистить</button>
+                    <label class="form-label small">Фильтр по врачу:</label>
+                    <select name="doctor_filter" class="form-select form-select-sm">
+                        <option value="">Все врачи</option>
+                        @foreach($doctors as $doctor)
+                            <option value="{{ $doctor->id }}" {{ request('doctor_filter') == $doctor->id ? 'selected' : '' }}>
+                                {{ $doctor->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
-                <div class="col-md-6 text-end">
-                    <form action="">
-                        <div class="btn-group btn-group-sm ms-2">
-                            <button id="datePrev" class="btn btn-outline-secondary">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <input type="date" name="date" class="form-control form-control-sm"
-                                value="{{ request()->get('date') ?? date('Y-m-d') }}" style="width: 140px;">
-                            <button id="dateNext" class="btn btn-outline-secondary">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
-                    </form>
-
+                <div class="col-md-2">
+                    <label class="form-label small">Статус записи:</label>
+                    <select name="status_filter" class="form-select form-select-sm">
+                        <option value="">Все статусы</option>
+                        <option value="pending" {{ request('status_filter') == 'pending' ? 'selected' : '' }}>Ожидает</option>
+                        <option value="confirmed" {{ request('status_filter') == 'confirmed' ? 'selected' : '' }}>Подтверждено</option>
+                        <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено</option>
+                        <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено</option>
+                    </select>
                 </div>
-            </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Дата:</label>
+                    <input type="date" 
+                           name="date" 
+                           class="form-control form-control-sm"
+                           value="{{ request('date') ?? date('Y-m-d') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Сортировка:</label>
+                    <select name="sort_by" class="form-select form-select-sm">
+                        <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>По ID</option>
+                        <option value="doctor_name" {{ request('sort_by') == 'doctor_name' ? 'selected' : '' }}>По врачу</option>
+                        <option value="appointment_date" {{ request('sort_by') == 'appointment_date' ? 'selected' : '' }}>По дате записи</option>
+                        <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате создания</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Порядок:</label>
+                    <select name="sort_order" class="form-select form-select-sm">
+                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>По убыванию</option>
+                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию</option>
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">Применить</button>
+                        @if(request()->anyFilled(['doctor_search', 'patient_search', 'doctor_filter', 'status_filter', 'date', 'sort_by', 'sort_order']))
+                            <a href="{{ route('admin.appointments') }}" class="btn btn-outline-secondary btn-sm">Сбросить</a>
+                        @endif
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
     @php
@@ -481,60 +524,6 @@
             }).show();
         }
 
-        // Обработка навигации по датам
-        document.addEventListener('DOMContentLoaded', function() {
-            const dateInput = document.querySelector('input[type="date"]');
-            const prevBtn = document.querySelector('#datePrev');
-            const nextBtn = document.querySelector('#dateNext');
-
-            if (prevBtn) {
-                prevBtn.addEventListener('click', function() {
-                    if (dateInput) {
-                        const currentDate = new Date(dateInput.value);
-                        currentDate.setDate(currentDate.getDate() - 1);
-                        dateInput.value = currentDate.toISOString().split('T')[0];
-                        // Обновляем данные таблицы
-                        updateScheduleData();
-                    }
-                });
-            }
-
-            if (nextBtn) {
-                nextBtn.addEventListener('click', function() {
-                    if (dateInput) {
-                        const currentDate = new Date(dateInput.value);
-                        currentDate.setDate(currentDate.getDate() + 1);
-                        dateInput.value = currentDate.toISOString().split('T')[0];
-                        // Обновляем данные таблицы
-                        updateScheduleData();
-                    }
-                });
-            }
-
-            if (dateInput) {
-                dateInput.addEventListener('change', function() {
-                    updateScheduleData();
-                });
-            }
-        });
-
-        // Функция обновления данных расписания
-        function updateScheduleData() {
-            // Здесь будет AJAX запрос для получения обновленных данных
-            console.log('Обновляем данные расписания');
-
-            // Показываем индикатор загрузки
-            document.querySelectorAll('.schedule-cell').forEach(cell => {
-                cell.style.opacity = '0.5';
-            });
-
-            // Имитация загрузки данных
-            setTimeout(() => {
-                document.querySelectorAll('.schedule-cell').forEach(cell => {
-                    cell.style.opacity = '1';
-                });
-            }, 500);
-        }
 
         function confirmAppointment(appointmentId) {
             fetch(`/admin/appointment/complete/${appointmentId}`, {

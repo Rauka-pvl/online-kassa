@@ -11,6 +11,53 @@
     </div>
 </div>
 
+<!-- Поиск, фильтры и сортировка -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.schedules') }}" class="row g-3">
+            <div class="col-md-4">
+                <input type="text"
+                       name="doctor_search"
+                       class="form-control"
+                       placeholder="Поиск врача по имени..."
+                       value="{{ request('doctor_search') }}">
+            </div>
+            <div class="col-md-2">
+                <select name="status_filter" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="active" {{ request('status_filter') == 'active' ? 'selected' : '' }}>Активные</option>
+                    <option value="inactive" {{ request('status_filter') == 'inactive' ? 'selected' : '' }}>Неактивные</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort_by" class="form-select">
+                    <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>Сортировка: ID</option>
+                    <option value="doctor_name" {{ request('sort_by') == 'doctor_name' ? 'selected' : '' }}>По имени врача</option>
+                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате создания</option>
+                    <option value="start_date" {{ request('sort_by') == 'start_date' ? 'selected' : '' }}>По дате начала</option>
+                    <option value="end_date" {{ request('sort_by') == 'end_date' ? 'selected' : '' }}>По дате окончания</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="sort_order" class="form-select">
+                    <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>По убыванию</option>
+                    <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Применить</button>
+                </div>
+            </div>
+            @if(request()->anyFilled(['doctor_search', 'status_filter', 'sort_by', 'sort_order']))
+                <div class="col-md-12">
+                    <a href="{{ route('admin.schedules') }}" class="btn btn-outline-secondary btn-sm">Сбросить</a>
+                </div>
+            @endif
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -197,3 +244,4 @@ function showScheduleDetails(scheduleId) {
 }
 </script>
 @endsection
+

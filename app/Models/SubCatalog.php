@@ -23,6 +23,6 @@ class SubCatalog extends Model
 
     public function services(): HasMany
     {
-        return $this->hasMany(Service::class);
+        return $this->hasMany(Service::class, 'sub_catalog_id');
     }
 }
