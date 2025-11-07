@@ -40,6 +40,69 @@ class AppointmentController extends Controller
             ];
         }
         
+        // Если есть поиск по пациенту, показываем список записей
+        if ($request->filled('patient_search')) {
+            $patientSearch = $request->patient_search;
+            
+            $appointmentsQuery = Appointment::with(['schedule.user', 'service'])
+                ->where(function ($q) use ($patientSearch) {
+                    $q->where('client_name', 'like', '%' . $patientSearch . '%')
+                      ->orWhere('client_phone', 'like', '%' . $patientSearch . '%')
+                      ->orWhere('patient_iin', 'like', '%' . $patientSearch . '%');
+                });
+            
+            // Поиск по врачу
+            if ($request->filled('doctor_search')) {
+                $doctorSearch = $request->doctor_search;
+                $appointmentsQuery->whereHas('schedule.user', function ($q) use ($doctorSearch) {
+                    $q->where('name', 'like', '%' . $doctorSearch . '%');
+                });
+            }
+            
+            // Фильтр по врачу
+            if ($request->filled('doctor_filter')) {
+                $appointmentsQuery->whereHas('schedule', function ($q) use ($request) {
+                    $q->where('user_id', $request->doctor_filter);
+                });
+            }
+            
+            // Фильтр по статусу
+            if ($request->filled('status_filter')) {
+                $appointmentsQuery->where('status', $request->status_filter);
+            }
+            
+            // Фильтр по дате
+            if ($request->filled('date')) {
+                $appointmentsQuery->whereDate('appointment_date', $request->date);
+            }
+            
+            // Сортировка
+            $sortBy = $request->get('sort_by', 'appointment_date');
+            $sortOrder = $request->get('sort_order', 'desc');
+            
+            if ($sortBy === 'doctor_name') {
+                $appointmentsQuery->join('schedules', 'appointments.schedule_id', '=', 'schedules.id')
+                                  ->join('users', 'schedules.user_id', '=', 'users.id')
+                                  ->select('appointments.*')
+                                  ->orderBy('users.name', $sortOrder)
+                                  ->groupBy('appointments.id');
+            } elseif ($sortBy === 'appointment_date') {
+                $appointmentsQuery->orderBy('appointment_date', $sortOrder)
+                                  ->orderBy('appointment_time', $sortOrder);
+            } elseif ($sortBy === 'created_at') {
+                $appointmentsQuery->orderBy('created_at', $sortOrder);
+            } else {
+                $appointmentsQuery->orderBy('id', $sortOrder);
+            }
+            
+            $appointments = $appointmentsQuery->paginate(20)->withQueryString();
+            $doctors = User::where('role', 4)->get();
+            $showList = true;
+            
+            return view('admin.appointments.index', compact('appointments', 'doctors', 'date', 'showList'));
+        }
+        
+        // Обычный режим - показываем графики
         $schedulesQuery = Schedule::with(['appointments', 'user'])
             ->where(function ($q) use ($dateRange) {
                 $q->whereBetween('start_date', [$dateRange[0], end($dateRange)])
@@ -55,16 +118,6 @@ class AppointmentController extends Controller
             $doctorSearch = $request->doctor_search;
             $schedulesQuery->whereHas('user', function ($q) use ($doctorSearch) {
                 $q->where('name', 'like', '%' . $doctorSearch . '%');
-            });
-        }
-        
-        // Поиск по пациенту (ФИО, телефон, ИИН)
-        if ($request->filled('patient_search')) {
-            $patientSearch = $request->patient_search;
-            $schedulesQuery->whereHas('appointments', function ($q) use ($patientSearch) {
-                $q->where('client_name', 'like', '%' . $patientSearch . '%')
-                  ->orWhere('client_phone', 'like', '%' . $patientSearch . '%')
-                  ->orWhere('patient_iin', 'like', '%' . $patientSearch . '%');
             });
         }
         
@@ -106,7 +159,9 @@ class AppointmentController extends Controller
         
         $schedules = $schedulesQuery->paginate(10)->withQueryString();
         $doctors = User::where('role', 4)->get();
-        return view('admin.appointments.index', compact('schedules', 'doctors', 'date'));
+        $showList = false;
+        
+        return view('admin.appointments.index', compact('schedules', 'doctors', 'date', 'showList'));
     }
 
     public function store(Schedule $schedule, Request $request)

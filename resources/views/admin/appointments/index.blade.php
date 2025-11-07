@@ -70,10 +70,26 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Дата:</label>
-                    <input type="date" 
-                           name="date" 
-                           class="form-control form-control-sm"
-                           value="{{ request('date') ?? date('Y-m-d') }}">
+                    <div class="input-group input-group-sm">
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                onclick="changeDate(-1)"
+                                title="Предыдущий день">
+                            ←
+                        </button>
+                        <input type="date" 
+                               name="date" 
+                               id="date_input"
+                               class="form-control form-control-sm"
+                               value="{{ request('date') ?? date('Y-m-d') }}"
+                               onchange="this.form.submit()">
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                onclick="changeDate(1)"
+                                title="Следующий день">
+                            →
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small">Сортировка:</label>
@@ -116,7 +132,111 @@
         $period = CarbonPeriod::create($startDate, $endDate);
 
         $adminController = new App\Http\Controllers\Admin\AdminController();
+        $showList = $showList ?? false;
     @endphp
+
+    @if($showList)
+        <!-- Список записей при поиске по пациенту -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Найденные записи</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Дата и время</th>
+                                <th>Пациент</th>
+                                <th>ИИН</th>
+                                <th>Телефон</th>
+                                <th>Врач</th>
+                                <th>Услуга</th>
+                                <th>Цена</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($appointments as $appointment)
+                                <tr>
+                                    <td>{{ $appointment->id }}</td>
+                                    <td>
+                                        <div>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d.m.Y') }}</div>
+                                        @if($appointment->appointment_time)
+                                            <small class="text-muted">{{ $appointment->appointment_time }}</small>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <strong>{{ $appointment->client_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <small>{{ $appointment->patient_iin }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="tel:{{ $appointment->client_phone }}">{{ $appointment->client_phone }}</a>
+                                    </td>
+                                    <td>
+                                        {{ $appointment->schedule->user->name }}
+                                    </td>
+                                    <td>
+                                        {{ $appointment->service->name }}
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">{{ number_format($appointment->total_price, 0, '.', ' ') }} ₸</strong>
+                                    </td>
+                                    <td>
+                                        @if($appointment->status == 'pending')
+                                            <span class="badge bg-warning">Ожидает</span>
+                                        @elseif($appointment->status == 'confirmed')
+                                            <span class="badge bg-success">Подтверждено</span>
+                                        @elseif($appointment->status == 'completed')
+                                            <span class="badge bg-info">Завершено</span>
+                                        @elseif($appointment->status == 'cancelled')
+                                            <span class="badge bg-danger">Отменено</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-success" 
+                                                    onclick="confirmAppointment({{ $appointment->id }})" 
+                                                    title="Подтвердить">
+                                                ✅
+                                            </button>
+                                            <button type="button" class="btn btn-outline-warning" 
+                                                    onclick="editAppointment({{ $appointment->id }})" 
+                                                    title="Редактировать">
+                                                ✏️
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="deleteAppointment({{ $appointment->id }})" 
+                                                    title="Удалить">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="10" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <p>Записи не найдены</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @if($appointments->hasPages())
+                    <div class="d-flex justify-content-center mt-3">
+                        {{ $appointments->links() }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    @else
+        <!-- Обычный режим - графики -->
     <div class="card">
         <div class="card-body p-0">
             <!-- Заголовки дней недели -->
@@ -251,38 +371,41 @@
         </div>
     </div>
 
-    <!-- Пагинация -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <div>
-            <small class="text-muted">Отображаются записи с {{ $schedules->firstItem() }} по
-                {{ $schedules->lastItem() }}, всего {{ $schedules->total() }}</small>
-        </div>
-        <nav>
-            <ul class="pagination pagination-sm">
-                @if ($schedules->currentPage() > 1)
-                    <li class="page-item">
-                        <a href="{{ $schedules->url(1) }}" class="page-link">◀◀</a>
-                    </li>
-                    <li class="page-item">
-                        <a href="{{ $schedules->previousPageUrl() }}" class="page-link">◀</a>
-                    </li>
-                @endif
+        <!-- Пагинация для графиков -->
+        @if(isset($schedules) && $schedules->hasPages())
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <small class="text-muted">Отображаются графики с {{ $schedules->firstItem() }} по
+                        {{ $schedules->lastItem() }}, всего {{ $schedules->total() }}</small>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm">
+                        @if ($schedules->currentPage() > 1)
+                            <li class="page-item">
+                                <a href="{{ $schedules->url(1) }}" class="page-link">◀◀</a>
+                            </li>
+                            <li class="page-item">
+                                <a href="{{ $schedules->previousPageUrl() }}" class="page-link">◀</a>
+                            </li>
+                        @endif
 
-                <li class="page-item active">
-                    <span class="page-link">{{ $schedules->currentPage() }}</span>
-                </li>
-                <li class="page-item disabled">
-                    <span class="page-link">из {{ $schedules->lastPage() }}</span>
-                </li>
-                <li class="page-item">
-                    <a href="{{ $schedules->nextPageUrl() }}" class="page-link">▶</a>
-                </li>
-                <li class="page-item">
-                    <a href="{{ $schedules->url($schedules->lastPage()) }}" class="page-link">▶▶</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+                        <li class="page-item active">
+                            <span class="page-link">{{ $schedules->currentPage() }}</span>
+                        </li>
+                        <li class="page-item disabled">
+                            <span class="page-link">из {{ $schedules->lastPage() }}</span>
+                        </li>
+                        <li class="page-item">
+                            <a href="{{ $schedules->nextPageUrl() }}" class="page-link">▶</a>
+                        </li>
+                        <li class="page-item">
+                            <a href="{{ $schedules->url($schedules->lastPage()) }}" class="page-link">▶▶</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        @endif
+    @endif
 
     <!-- Модальное окно записи пациента -->
     <div class="modal fade" id="appointmentModal" tabindex="-2">
@@ -347,6 +470,22 @@
 
     <script src="https://unpkg.com/imask"></script>
     <script>
+        // Навигация по датам
+        function changeDate(days) {
+            const dateInput = document.getElementById('date_input');
+            if (!dateInput) return;
+            
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + days);
+            
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            
+            dateInput.value = `${year}-${month}-${day}`;
+            dateInput.form.submit();
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             var phoneInput = document.querySelector("input[name='patient_phone']");
             IMask(phoneInput, {
@@ -360,6 +499,54 @@
     </script>
 
     <style>
+        /* Навигация по датам */
+        .input-group .btn {
+            border-radius: 0;
+            min-width: 40px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .input-group .btn:hover {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+            border-right: none;
+        }
+
+        .input-group .btn:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .input-group .btn:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        /* Таблица записей */
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .table th {
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        /* Графики */
         .schedule-row {
             cursor: pointer;
             transition: background-color 0.2s;
@@ -401,6 +588,12 @@
 
         .slot-controls .btn {
             margin-right: 5px;
+        }
+
+        /* Кнопки действий */
+        .btn-group-sm .btn {
+            padding: 4px 8px;
+            font-size: 12px;
         }
     </style>
 
