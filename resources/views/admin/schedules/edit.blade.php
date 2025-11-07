@@ -272,7 +272,6 @@
             });
         });
     });
-});
 
 // Функции для сворачивания/разворачивания
 function toggleCatalogCollapse(catalogId) {

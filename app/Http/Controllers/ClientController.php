@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Catalog;
+use App\Models\Service;
 use App\Models\SubCatalog;
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -24,23 +26,23 @@ class ClientController extends Controller
         $subCatalogs = SubCatalog::where('catalog_id', $id)->get();
         return view('client.subcatalog', compact('subCatalogs'));
     }
-    public function services()
+    public function services(int $subCatalogId)
     {
-        $services = [
-            (object)[
-                'name' => 'Услуга 1',
-                'description' => 'Описание услуги 1'
-            ],
-            (object)[
-                'name' => 'Услуга 2',
-                'description' => 'Описание услуги 2'
-            ],
-            (object)[
-                'name' => 'Услуга 3',
-                'description' => 'Описание услуги 3'
-            ]
-        ];
-        return view('client.services', compact('services'));
+        $subCatalog = SubCatalog::with(['services' => function ($q) {
+            $q->where('is_active', true)
+              ->with(['schedules.user']);
+        }])->findOrFail($subCatalogId);
+
+        $services = $subCatalog->services;
+
+        return view('client.services', compact('subCatalog', 'services'));
+    }
+
+    public function booking(Service $service)
+    {
+        // Все активные графики, где доступна данная услуга
+        $schedules = $service->schedules()->with('user')->get();
+        return view('client.booking', compact('service', 'schedules'));
     }
 
     public function about()

@@ -24,11 +24,12 @@
                     <img src="{{ Storage::url('icons/logo.png') }}" alt="A.S.K. MED">
                 </a>
 
-                <div class="search-container">
-                    <input type="text" class="search-input" placeholder="Поиск врачей и услуг...">
+                <div class="search-container" style="position: relative;">
+                    <input type="text" class="search-input" placeholder="Поиск врачей и услуг..." autocomplete="off">
                     <button class="search-btn">
                         <i class="fas fa-search"></i>
                     </button>
+                    <div id="searchResults" class="search-results" style="position:absolute; top:100%; left:0; right:0; z-index:1000; display:none;"></div>
                 </div>
 
                 <div class="mobile-menu" onclick="toggleMobileMenu()">
@@ -260,24 +261,7 @@
             // Здесь будет интеграция с платёжной системой
         }
 
-        // Search functionality
-        document.querySelector('.search-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const query = this.value.trim();
-                if (query) {
-                    const results = performSearch(query);
-                    showSearchResults(results, query);
-                }
-            }
-        });
-
-        document.querySelector('.search-btn').addEventListener('click', function() {
-            const query = document.querySelector('.search-input').value.trim();
-            if (query) {
-                const results = performSearch(query);
-                showSearchResults(results, query);
-            }
-        });
+        // Search functionality handled in resources/js/client.js
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
