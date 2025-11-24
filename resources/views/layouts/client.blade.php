@@ -268,5 +268,7 @@
             // showPage('home');
         });
     </script>
+
+    @stack('scripts')
 </body>
 </html>

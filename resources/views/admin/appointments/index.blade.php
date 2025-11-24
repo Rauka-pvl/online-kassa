@@ -33,26 +33,21 @@
             <form method="GET" action="{{ route('admin.appointments') }}" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label small">Поиск по врачу:</label>
-                    <input type="text" 
-                           name="doctor_search" 
-                           class="form-control form-control-sm" 
-                           placeholder="Имя врача..." 
-                           value="{{ request('doctor_search') }}">
+                    <input type="text" name="doctor_search" class="form-control form-control-sm"
+                        placeholder="Имя врача..." value="{{ request('doctor_search') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small">Поиск по пациенту:</label>
-                    <input type="text" 
-                           name="patient_search" 
-                           class="form-control form-control-sm" 
-                           placeholder="ФИО, телефон или ИИН..." 
-                           value="{{ request('patient_search') }}">
+                    <input type="text" name="patient_search" class="form-control form-control-sm"
+                        placeholder="ФИО, телефон или ИИН..." value="{{ request('patient_search') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Фильтр по врачу:</label>
                     <select name="doctor_filter" class="form-select form-select-sm">
                         <option value="">Все врачи</option>
-                        @foreach($doctors as $doctor)
-                            <option value="{{ $doctor->id }}" {{ request('doctor_filter') == $doctor->id ? 'selected' : '' }}>
+                        @foreach ($doctors as $doctor)
+                            <option value="{{ $doctor->id }}"
+                                {{ request('doctor_filter') == $doctor->id ? 'selected' : '' }}>
                                 {{ $doctor->name }}
                             </option>
                         @endforeach
@@ -62,31 +57,27 @@
                     <label class="form-label small">Статус записи:</label>
                     <select name="status_filter" class="form-select form-select-sm">
                         <option value="">Все статусы</option>
-                        <option value="pending" {{ request('status_filter') == 'pending' ? 'selected' : '' }}>Ожидает</option>
-                        <option value="confirmed" {{ request('status_filter') == 'confirmed' ? 'selected' : '' }}>Подтверждено</option>
-                        <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено</option>
-                        <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено</option>
+                        <option value="pending" {{ request('status_filter') == 'pending' ? 'selected' : '' }}>Ожидает
+                        </option>
+                        <option value="confirmed" {{ request('status_filter') == 'confirmed' ? 'selected' : '' }}>
+                            Подтверждено</option>
+                        <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено
+                        </option>
+                        <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Дата:</label>
                     <div class="input-group input-group-sm">
-                        <button type="button" 
-                                class="btn btn-outline-secondary" 
-                                onclick="changeDate(-1)"
-                                title="Предыдущий день">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeDate(-1)"
+                            title="Предыдущий день">
                             ←
                         </button>
-                        <input type="date" 
-                               name="date" 
-                               id="date_input"
-                               class="form-control form-control-sm"
-                               value="{{ request('date') ?? date('Y-m-d') }}"
-                               onchange="this.form.submit()">
-                        <button type="button" 
-                                class="btn btn-outline-secondary" 
-                                onclick="changeDate(1)"
-                                title="Следующий день">
+                        <input type="date" name="date" id="date_input" class="form-control form-control-sm"
+                            value="{{ request('date') ?? date('Y-m-d') }}" onchange="this.form.submit()">
+                        <button type="button" class="btn btn-outline-secondary" onclick="changeDate(1)"
+                            title="Следующий день">
                             →
                         </button>
                     </div>
@@ -95,23 +86,36 @@
                     <label class="form-label small">Сортировка:</label>
                     <select name="sort_by" class="form-select form-select-sm">
                         <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>По ID</option>
-                        <option value="doctor_name" {{ request('sort_by') == 'doctor_name' ? 'selected' : '' }}>По врачу</option>
-                        <option value="appointment_date" {{ request('sort_by') == 'appointment_date' ? 'selected' : '' }}>По дате записи</option>
-                        <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате создания</option>
+                        <option value="doctor_name" {{ request('sort_by') == 'doctor_name' ? 'selected' : '' }}>По врачу
+                        </option>
+                        <option value="appointment_date" {{ request('sort_by') == 'appointment_date' ? 'selected' : '' }}>
+                            По дате записи</option>
+                        <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>По дате
+                            создания</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Порядок:</label>
                     <select name="sort_order" class="form-select form-select-sm">
                         <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>По убыванию</option>
-                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию</option>
+                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>По возрастанию
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-12">
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm">Применить</button>
-                        @if(request()->anyFilled(['doctor_search', 'patient_search', 'doctor_filter', 'status_filter', 'date', 'sort_by', 'sort_order']))
-                            <a href="{{ route('admin.appointments') }}" class="btn btn-outline-secondary btn-sm">Сбросить</a>
+                        @if (request()->anyFilled([
+                                'doctor_search',
+                                'patient_search',
+                                'doctor_filter',
+                                'status_filter',
+                                'date',
+                                'sort_by',
+                                'sort_order',
+                            ]))
+                            <a href="{{ route('admin.appointments') }}"
+                                class="btn btn-outline-secondary btn-sm">Сбросить</a>
                         @endif
                     </div>
                 </div>
@@ -135,7 +139,7 @@
         $showList = $showList ?? false;
     @endphp
 
-    @if($showList)
+    @if ($showList)
         <!-- Список записей при поиске по пациенту -->
         <div class="card">
             <div class="card-body">
@@ -161,8 +165,9 @@
                                 <tr>
                                     <td>{{ $appointment->id }}</td>
                                     <td>
-                                        <div>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d.m.Y') }}</div>
-                                        @if($appointment->appointment_time)
+                                        <div>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d.m.Y') }}
+                                        </div>
+                                        @if ($appointment->appointment_time)
                                             <small class="text-muted">{{ $appointment->appointment_time }}</small>
                                         @endif
                                     </td>
@@ -173,7 +178,8 @@
                                         <small>{{ $appointment->patient_iin }}</small>
                                     </td>
                                     <td>
-                                        <a href="tel:{{ $appointment->client_phone }}">{{ $appointment->client_phone }}</a>
+                                        <a
+                                            href="tel:{{ $appointment->client_phone }}">{{ $appointment->client_phone }}</a>
                                     </td>
                                     <td>
                                         {{ $appointment->schedule->user->name }}
@@ -182,10 +188,12 @@
                                         {{ $appointment->service->name }}
                                     </td>
                                     <td>
-                                        <strong class="text-success">{{ number_format($appointment->total_price, 0, '.', ' ') }} ₸</strong>
+                                        <strong
+                                            class="text-success">{{ number_format($appointment->total_price, 0, '.', ' ') }}
+                                            ₸</strong>
                                     </td>
                                     <td>
-                                        @if($appointment->status == 'pending')
+                                        @if ($appointment->status == 'pending')
                                             <span class="badge bg-warning">Ожидает</span>
                                         @elseif($appointment->status == 'confirmed')
                                             <span class="badge bg-success">Подтверждено</span>
@@ -197,19 +205,16 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-success" 
-                                                    onclick="confirmAppointment({{ $appointment->id }})" 
-                                                    title="Подтвердить">
+                                            <button type="button" class="btn btn-outline-success"
+                                                onclick="confirmAppointment({{ $appointment->id }})" title="Подтвердить">
                                                 ✅
                                             </button>
-                                            <button type="button" class="btn btn-outline-warning" 
-                                                    onclick="editAppointment({{ $appointment->id }})" 
-                                                    title="Редактировать">
+                                            <button type="button" class="btn btn-outline-warning"
+                                                onclick="editAppointment({{ $appointment->id }})" title="Редактировать">
                                                 ✏️
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger" 
-                                                    onclick="deleteAppointment({{ $appointment->id }})" 
-                                                    title="Удалить">
+                                            <button type="button" class="btn btn-outline-danger"
+                                                onclick="deleteAppointment({{ $appointment->id }})" title="Удалить">
                                                 🗑️
                                             </button>
                                         </div>
@@ -228,7 +233,7 @@
                     </table>
                 </div>
 
-                @if($appointments->hasPages())
+                @if ($appointments->hasPages())
                     <div class="d-flex justify-content-center mt-3">
                         {{ $appointments->links() }}
                     </div>
@@ -237,108 +242,124 @@
         </div>
     @else
         <!-- Обычный режим - графики -->
-    <div class="card">
-        <div class="card-body p-0">
-            <!-- Заголовки дней недели -->
-            <div class="row g-0 border-bottom bg-light">
-                <div class="col-2 p-2 border-end">
-                    <strong>Врач</strong>
-                </div>
-                @foreach ($period as $date)
-                    <div class="col-2 p-2 border-end text-center">
-                        <div><strong>{{ $date->translatedFormat('D, d M') }}</strong></div>
-                        @if ($date->isToday())
-                            <div class="small text-success">Сегодня</div>
-                        @elseif ($date->isTomorrow())
-                            <div class="small text-primary">Завтра</div>
-                        @elseif ($date->isYesterday())
-                            <div class="small text-muted">Вчера</div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-            @foreach ($schedules as $schedule)
-                <div class="row g-0 border-bottom schedule-row">
-                    <div class="col-2 p-3 border-end bg-white">
-                        <div class="fw-bold">{{ $schedule->user->name }}</div>
-                        <div class="small text-muted">Кабинет {{ $schedule->room }}</div>
+        <div class="card">
+            <div class="card-body p-0">
+                <!-- Заголовки дней недели -->
+                <style>
+                    .sticky-header {
+                        position: sticky;
+                        top: 0;
+                        /* расстояние от верхнего края окна */
+                        z-index: 10;
+                        /* чтобы была выше других элементов */
+                        background-color: #f8f9fa;
+                        /* тот же цвет фона, чтобы не просвечивал контент */
+                    }
+                </style>
+                <div class="row g-0 border-bottom bg-light sticky-header">
+                    <div class="col-2 p-2 border-end">
+                        <strong>Врач</strong>
                     </div>
                     @foreach ($period as $date)
-                        @php
-                            $dayKey = strtolower($date->format('l')); // например, monday
-                            $active = $schedule->{$dayKey . '_active'};
-                            $start = $schedule->{$dayKey . '_start'};
-                            $end = $schedule->{$dayKey . '_end'};
-                        @endphp
-
-                        <div class="col-2 p-2 border-end text-center schedule-cell
-                                {{ $active && $date->between($schedule->start_date, $schedule->end_date, true) && $date >= Carbon::today() ? 'bg-success-subtle' : 'bg-light text-muted' }}"
-                            @if (
-                                $active &&
-                                    $start &&
-                                    $end &&
-                                    $date->between($schedule->start_date, $schedule->end_date, true) &&
-                                    $date >= Carbon::today()) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $date->format('Y-m-d') }}')" @endif>
-                            @if ($active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true))
-                                <div class="small text-muted">{{ \Carbon\Carbon::parse($start)->format('H:i') }} -
-                                    {{ \Carbon\Carbon::parse($end)->format('H:i') }}</div>
-                                @if (!$schedule->appointment_interval && $schedule->unlimited_appointments)
-                                    <div class="text-success fw-bold">
-                                        Безлимитный приём
-                                    </div>
-                                @else
-                                    @php
-                                        $slots = $adminController->getTimeSlotsAdmin($schedule, $date->format('Y-m-d'));
-                                        $slots = $slots->getData(true);
-                                        $totalSlots = isset($slots['booked_slots']) ? count($slots['booked_slots']) : 0;
-                                        $freeSlots = isset($slots['available_slots'])
-                                            ? count($slots['available_slots'])
-                                            : 0;
-                                        $slotClass = 'text-success fw-bold';
-                                        if ($freeSlots === 0) {
-                                            $slotClass = 'bg-danger-subtle text-danger fw-bold p-1 rounded';
-                                        } elseif ($totalSlots > 0 && $freeSlots <= $totalSlots / 2) {
-                                            $slotClass = 'bg-warning-subtle text-warning fw-bold p-1 rounded';
-                                        }
-                                    @endphp
-                                    <div class="{{ $slotClass }}">
-                                        Свободно: {{ $freeSlots }} <br>
-                                        Занято: {{ $totalSlots }}
-                                    </div>
-                                @endif
-                            @else
-                                <div class="small">Нет приёма</div>
+                        <div class="col-2 p-2 border-end text-center">
+                            <div><strong>{{ $date->translatedFormat('D, d M') }}</strong></div>
+                            @if ($date->isToday())
+                                <div class="small text-success">Сегодня</div>
+                            @elseif ($date->isTomorrow())
+                                <div class="small text-primary">Завтра</div>
+                            @elseif ($date->isYesterday())
+                                <div class="small text-muted">Вчера</div>
                             @endif
                         </div>
                     @endforeach
                 </div>
-            @endforeach
-        </div>
-    </div>
-
-    <!-- Модальное окно детального просмотра времени врача -->
-    <div class="modal fade" id="doctorScheduleModal" tabindex="-3">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="doctorModalTitle">Расписание врача</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <button
-                                onclick="bootstrap.Modal.getInstance(document.getElementById('doctorScheduleModal')).hide();"
-                                class="btn btn-outline-primary btn-sm">Вернуться к графикам</button>
+                @foreach ($schedules as $schedule)
+                    <div class="row g-0 border-bottom schedule-row">
+                        <div class="col-2 p-3 border-end bg-white">
+                            <div class="fw-bold">{{ $schedule->user->name }}</div>
+                            <div class="small text-muted">Кабинет {{ $schedule->room }}</div>
                         </div>
-                    </div>
+                        @foreach ($period as $date)
+                            @php
+                                $dayKey = strtolower($date->format('l')); // например, monday
+                                $active = $schedule->{$dayKey . '_active'};
+                                $start = $schedule->{$dayKey . '_start'};
+                                $end = $schedule->{$dayKey . '_end'};
+                            @endphp
 
-                    <!-- Временные слоты -->
-                    <div class="row">
-                        <div class="col-12">
-                            <div id="doctorSlotsContainer" class="time-slots-container"
-                                style="max-height: 400px; overflow-y: auto;">
-                                {{-- <div class="time-slot p-2 mb-2 bg-light border rounded" onclick="selectTimeSlot('')">
+                            <div class="col-2 p-2 border-end text-center schedule-cell
+                                {{ $active && $date->between($schedule->start_date, $schedule->end_date, true) && $date >= Carbon::today() ? 'bg-success-subtle' : 'bg-light text-muted' }}"
+                                @if (
+                                    $active &&
+                                        $start &&
+                                        $end &&
+                                        $date->between($schedule->start_date, $schedule->end_date, true) &&
+                                        $date >= Carbon::today()) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $date->format('Y-m-d') }}', '{{ $date->translatedFormat('D, d M') }}')" @endif>
+                                @if ($active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true))
+                                    <div class="small text-muted">{{ \Carbon\Carbon::parse($start)->format('H:i') }} -
+                                        {{ \Carbon\Carbon::parse($end)->format('H:i') }}</div>
+                                    @if (!$schedule->appointment_interval && $schedule->unlimited_appointments)
+                                        <div class="text-success fw-bold">
+                                            Безлимитный приём
+                                        </div>
+                                    @else
+                                        @php
+                                            $slots = $adminController->getTimeSlotsAdmin(
+                                                $schedule,
+                                                $date->format('Y-m-d'),
+                                            );
+                                            $slots = $slots->getData(true);
+                                            $totalSlots = isset($slots['booked_slots'])
+                                                ? count($slots['booked_slots'])
+                                                : 0;
+                                            $freeSlots = isset($slots['available_slots'])
+                                                ? count($slots['available_slots'])
+                                                : 0;
+                                            $slotClass = 'text-success fw-bold';
+                                            if ($freeSlots === 0) {
+                                                $slotClass = 'bg-danger-subtle text-danger fw-bold p-1 rounded';
+                                            } elseif ($totalSlots > 0 && $freeSlots <= $totalSlots / 2) {
+                                                $slotClass = 'bg-warning-subtle text-warning fw-bold p-1 rounded';
+                                            }
+                                        @endphp
+                                        <div class="{{ $slotClass }}">
+                                            Свободно: {{ $freeSlots }} <br>
+                                            Занято: {{ $totalSlots }}
+                                        </div>
+                                    @endif
+                                @else
+                                    <div class="small">Нет приёма</div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Модальное окно детального просмотра времени врача -->
+        <div class="modal fade" id="doctorScheduleModal" tabindex="-3">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="doctorModalTitle">Расписание врача</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <button
+                                    onclick="bootstrap.Modal.getInstance(document.getElementById('doctorScheduleModal')).hide();"
+                                    class="btn btn-outline-primary btn-sm">Вернуться к графикам</button>
+                            </div>
+                        </div>
+
+                        <!-- Временные слоты -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="doctorSlotsContainer" class="time-slots-container"
+                                    style="max-height: 400px; overflow-y: auto;">
+                                    {{-- <div class="time-slot p-2 mb-2 bg-light border rounded" onclick="selectTimeSlot('')">
                                     <strong></strong>
                                     <div class="slot-controls mt-1">
                                         <button class="btn btn-sm btn-outline-primary">📅</button>
@@ -346,9 +367,9 @@
                                         <button class="btn btn-sm btn-outline-info">📋</button>
                                     </div>
                                 </div> --}}
-                            </div>
+                                </div>
 
-                            {{-- <div class="mt-3">
+                                {{-- <div class="mt-3">
                                 <div class="form-check form-check-sm">
                                     <input class="form-check-input" type="checkbox" id="showAll">
                                     <label class="form-check-label" for="showAll">
@@ -356,23 +377,23 @@
                                     </label>
                                 </div>
                             </div> --}}
-                        </div>
+                            </div>
 
-                        {{-- <div class="col-4">
+                            {{-- <div class="col-4">
                             <div class="appointment-actions">
                                 <button class="btn btn-success btn-sm mb-2 w-100">Свободно</button>
                                 <button class="btn btn-danger btn-sm mb-2 w-100">Занято</button>
                                 <button class="btn btn-secondary btn-sm mb-2 w-100">Забронировано</button>
                             </div>
                         </div> --}}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
         <!-- Пагинация для графиков -->
-        @if(isset($schedules) && $schedules->hasPages())
+        @if (isset($schedules) && $schedules->hasPages())
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
                     <small class="text-muted">Отображаются графики с {{ $schedules->firstItem() }} по
@@ -474,14 +495,14 @@
         function changeDate(days) {
             const dateInput = document.getElementById('date_input');
             if (!dateInput) return;
-            
+
             const currentDate = new Date(dateInput.value);
             currentDate.setDate(currentDate.getDate() + days);
-            
+
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             const day = String(currentDate.getDate()).padStart(2, '0');
-            
+
             dateInput.value = `${year}-${month}-${day}`;
             dateInput.form.submit();
         }
@@ -598,13 +619,14 @@
     </style>
 
     <script>
-        function openDoctorSchedule(scheduleId, doctorName, date) {
+        function openDoctorSchedule(scheduleId, doctorName, date, displayDate) {
             fetch(`/admin/schedules/${scheduleId}/day/${date}`)
                 .then(res => res.json())
                 .then(data => {
                     const container = document.getElementById('doctorSlotsContainer');
                     container.innerHTML = ''; // очистим прошлое содержимое
-
+                    document.getElementById('doctorModalTitle').textContent =
+                        `Расписание врача: ${doctorName} на ${displayDate}`;
                     if (!data.is_working_day) {
                         container.innerHTML = `<div class="alert alert-warning">В этот день врач не работает</div>`;
                         return;

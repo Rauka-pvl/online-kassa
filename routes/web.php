@@ -15,6 +15,7 @@ Route::get('/service/{service}/booking', [ClientController::class, 'booking'])->
 // Public booking + confirmation (payment mock)
 Route::post('/booking', [PublicBookingController::class, 'store'])->name('booking.store');
 Route::get('/booking/confirm', [PublicBookingController::class, 'confirm'])->name('booking.confirm');
+Route::get('/api/schedules/{schedule}/slots', [PublicBookingController::class, 'slots'])->name('api.schedules.slots');
 
 // Live search API
 Route::get('/api/search', [SearchController::class, 'index'])->name('api.search');

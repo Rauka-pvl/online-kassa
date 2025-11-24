@@ -157,7 +157,7 @@ class AppointmentController extends Controller
             $schedulesQuery->orderBy('schedules.id', $sortOrder);
         }
 
-        $schedules = $schedulesQuery->paginate(10)->withQueryString();
+        $schedules = $schedulesQuery->paginate(15)->withQueryString();
         $doctors = User::where('role', 4)->get();
         $showList = false;
 

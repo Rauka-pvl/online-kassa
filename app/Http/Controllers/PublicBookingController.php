@@ -6,7 +6,6 @@ use App\Models\Appointment;
 use App\Models\Schedule;
 use App\Models\Service;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redirect;
 use Carbon\Carbon;
 
 class PublicBookingController extends Controller
@@ -26,7 +25,11 @@ class PublicBookingController extends Controller
         $service = Service::findOrFail($validated['service_id']);
         $schedule = Schedule::with('appointments')->findOrFail($validated['schedule_id']);
 
-        if (!$schedule->hasUnlimitedAppointments()) {
+        if ($schedule->hasUnlimitedAppointments()) {
+            if (empty($validated['time'])) {
+                return back()->withErrors(['time' => 'Укажите время приёма'])->withInput();
+            }
+        } else {
             if (empty($validated['time'])) {
                 return back()->withErrors(['time' => 'Выберите время приёма'])->withInput();
             }
@@ -47,7 +50,7 @@ class PublicBookingController extends Controller
             'client_phone' => $validated['client_phone'],
             'appointment_date' => $validated['date'],
             'appointment_time' => $validated['time'] ?? null,
-            'appointment_end_time' => isset($validated['time']) && $validated['time']
+            'appointment_end_time' => isset($validated['time']) && $validated['time'] && $schedule->appointment_interval
                 ? Carbon::parse($validated['time'])->addMinutes($schedule->appointment_interval)->format('H:i')
                 : null,
             'total_price' => $service->price ?? 0,
@@ -63,6 +66,47 @@ class PublicBookingController extends Controller
         $appointment = $appointmentId ? Appointment::with(['schedule.user', 'service'])->find($appointmentId) : null;
         return view('client.confirm', compact('appointment'));
     }
+
+    public function slots(Schedule $schedule, Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date'
+        ]);
+
+        $date = Carbon::parse($request->query('date'))->format('Y-m-d');
+        $dayName = strtolower(Carbon::parse($date)->format('l'));
+
+        if (!$schedule->isWorkingDay($dayName)) {
+            return response()->json([
+                'unlimited' => $schedule->hasUnlimitedAppointments(),
+                'working' => false,
+                'slots' => [],
+                'working_hours' => null,
+            ]);
+        }
+
+        $workingHours = $schedule->getWorkingHours($dayName);
+
+        if ($schedule->hasUnlimitedAppointments()) {
+            return response()->json([
+                'unlimited' => true,
+                'working' => true,
+                'slots' => [],
+                'working_hours' => $workingHours,
+            ]);
+        }
+
+        $daySchedule = $schedule->getDaySchedule($date);
+        $freeSlots = collect($daySchedule)
+            ->filter(fn($slot) => $slot['is_free'])
+            ->pluck('time')
+            ->values();
+
+        return response()->json([
+            'unlimited' => false,
+            'working' => true,
+            'slots' => $freeSlots,
+            'working_hours' => $workingHours,
+        ]);
+    }
 }
-
-

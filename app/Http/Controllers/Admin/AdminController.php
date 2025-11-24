@@ -542,7 +542,10 @@ class AdminController extends Controller
             // 'appointment_interval' => 'required|integer|min:5|max:480',
             'services' => 'required|array',
             'services.*' => 'exists:services,id',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'start_date' => 'date|nullable',
+            'end_date' => 'date|nullable|after_or_equal:start_date',
+
         ]);
 
         $scheduleData = $request->only([
@@ -573,6 +576,14 @@ class AdminController extends Controller
             'start_date',
             'end_date'
         ]);
+
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        foreach ($days as $day) {
+            $scheduleData["{$day}_active"] = $request->boolean("{$day}_active", false);
+            $scheduleData["{$day}_start"]  = $scheduleData["{$day}_active"] ? $request->input("{$day}_start") : null;
+            $scheduleData["{$day}_end"]    = $scheduleData["{$day}_active"] ? $request->input("{$day}_end") : null;
+        }
 
         $schedule->update($scheduleData);
         $schedule->services()->sync($request->services);
