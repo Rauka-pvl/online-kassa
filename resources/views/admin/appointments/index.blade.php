@@ -358,7 +358,7 @@
                         <div class="row">
                             <div class="col-12">
                                 <div id="doctorSlotsContainer" class="time-slots-container"
-                                    style="max-height: 400px; overflow-y: auto;">
+                                    style="max-height: 79vh; overflow-y: auto; overflow-x: hidden;">
                                     {{-- <div class="time-slot p-2 mb-2 bg-light border rounded" onclick="selectTimeSlot('')">
                                     <strong></strong>
                                     <div class="slot-controls mt-1">
