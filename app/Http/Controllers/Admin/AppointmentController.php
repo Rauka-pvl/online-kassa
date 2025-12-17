@@ -134,8 +134,8 @@ class AppointmentController extends Controller
         }
 
         // Сортировка
-        $sortBy = $request->get('sort_by', 'id');
-        $sortOrder = $request->get('sort_order', 'desc');
+        $sortBy = $request->get('sort_by', 'doctor_name');
+        $sortOrder = $request->get('sort_order', 'asc');
         $allowedSorts = ['id', 'created_at', 'start_date', 'end_date'];
 
         if ($sortBy === 'doctor_name') {
@@ -153,8 +153,11 @@ class AppointmentController extends Controller
         } elseif (in_array($sortBy, $allowedSorts)) {
             $schedulesQuery->orderBy('schedules.' . $sortBy, $sortOrder);
         } else {
-            // По умолчанию сортировка по ID
-            $schedulesQuery->orderBy('schedules.id', $sortOrder);
+            // По умолчанию сортировка по имени врача
+            $schedulesQuery->leftJoin('users', 'schedules.user_id', '=', 'users.id')
+                ->select('schedules.*')
+                ->orderBy('users.name', $sortOrder)
+                ->groupBy('schedules.id');
         }
 
         $schedules = $schedulesQuery->paginate(15)->withQueryString();

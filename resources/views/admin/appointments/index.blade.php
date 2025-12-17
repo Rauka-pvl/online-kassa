@@ -61,10 +61,10 @@
                         </option>
                         <option value="confirmed" {{ request('status_filter') == 'confirmed' ? 'selected' : '' }}>
                             Подтверждено</option>
-                        <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено
-                        </option>
-                        <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено
-                        </option>
+                        {{-- <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено
+                        </option> --}}
+                        {{-- <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено
+                        </option> --}}
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -85,7 +85,7 @@
                 <div class="col-md-3">
                     <label class="form-label small">Сортировка:</label>
                     <select name="sort_by" class="form-select form-select-sm">
-                        <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>По ID</option>
+                        {{-- <option value="id" {{ request('sort_by') == 'id' ? 'selected' : '' }}>По ID</option> --}}
                         <option value="doctor_name" {{ request('sort_by') == 'doctor_name' ? 'selected' : '' }}>По врачу
                         </option>
                         <option value="appointment_date" {{ request('sort_by') == 'appointment_date' ? 'selected' : '' }}>
