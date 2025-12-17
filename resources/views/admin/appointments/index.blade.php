@@ -285,16 +285,13 @@
                                 $active = $schedule->{$dayKey . '_active'};
                                 $start = $schedule->{$dayKey . '_start'};
                                 $end = $schedule->{$dayKey . '_end'};
+                                $isPastDate = $date < Carbon::today();
+                                $isActiveDay = $active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true);
                             @endphp
 
                             <div class="col-2 p-2 border-end text-center schedule-cell
-                                {{ $active && $date->between($schedule->start_date, $schedule->end_date, true) && $date >= Carbon::today() ? 'bg-success-subtle' : 'bg-light text-muted' }}"
-                                @if (
-                                    $active &&
-                                        $start &&
-                                        $end &&
-                                        $date->between($schedule->start_date, $schedule->end_date, true) &&
-                                        $date >= Carbon::today()) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $date->format('Y-m-d') }}', '{{ $date->translatedFormat('D, d M') }}')" @endif>
+                                {{ $isActiveDay ? ($isPastDate ? 'bg-secondary-subtle' : 'bg-success-subtle') : 'bg-light text-muted' }}"
+                                @if ($isActiveDay) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $date->format('Y-m-d') }}', '{{ $date->translatedFormat('D, d M') }}', {{ $isPastDate ? 'true' : 'false' }})" @endif>
                                 @if ($active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true))
                                     <div class="small text-muted">{{ \Carbon\Carbon::parse($start)->format('H:i') }} -
                                         {{ \Carbon\Carbon::parse($end)->format('H:i') }}</div>
@@ -619,7 +616,7 @@
     </style>
 
     <script>
-        function openDoctorSchedule(scheduleId, doctorName, date, displayDate) {
+        function openDoctorSchedule(scheduleId, doctorName, date, displayDate, isPastDate) {
             fetch(`/admin/schedules/${scheduleId}/day/${date}`)
                 .then(res => res.json())
                 .then(data => {
@@ -642,28 +639,42 @@
                                 if (slot.appointment.status == 'confirmed') {
                                     slotDiv.classList.add("bg-success-subtle");
                                 }
+                                // Для прошедших дат показываем только кнопку подтверждения
+                                const actionButtons = isPastDate
+                                    ? `<button class="btn btn-sm btn-outline-success" onclick="confirmAppointment('${slot.appointment.id}')">✅</button>`
+                                    : `<button class="btn btn-sm btn-outline-success" onclick="confirmAppointment('${slot.appointment.id}')">✅</button>
+                                       <button class="btn btn-sm btn-outline-warning" onclick="editAppointment('${slot.appointment.id}')">✏️</button>
+                                       <button class="btn btn-sm btn-outline-danger" onclick="deleteAppointment('${slot.appointment.id}')">🗑️</button>`;
+
                                 slotDiv.innerHTML = `
                                     <strong>${slot.time} - ${slot.appointment.client_name}, ${slot.appointment.patient_iin}, ${slot.appointment.client_phone}</strong>
                                     <br>
                                     <strong>${slot.appointment.service.name} (${slot.appointment.service.price})</strong>
                                     <div class="slot-controls mt-1">
-                                        <button class="btn btn-sm btn-outline-success" onclick="confirmAppointment('${slot.appointment.id}')">✅</button>
-                                        <button class="btn btn-sm btn-outline-warning" onclick="editAppointment('${slot.appointment.id}')">✏️</button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAppointment('${slot.appointment.id}')">🗑️</button>
+                                        ${actionButtons}
                                     </div>
                                 `;
                             } else {
-                                slotDiv.setAttribute("onclick",
-                                    `selectTimeSlot('${slot.time}','${scheduleId}','${doctorName}','${date}')`
-                                );
-                                slotDiv.innerHTML = `
-                                    <strong>${slot.time}</strong>
-                                    {{-- <div class="slot-controls mt-1">
-                                        <button class="btn btn-sm btn-outline-primary">📅</button>
-                                        <button class="btn btn-sm btn-outline-warning">👥</button>
-                                        <button class="btn btn-sm btn-outline-info">📋</button>
-                                    </div> --}}
-                                `;
+                                // Для прошедших дат не разрешаем запись
+                                if (isPastDate) {
+                                    slotDiv.classList.add("text-muted");
+                                    slotDiv.style.cursor = "not-allowed";
+                                    slotDiv.innerHTML = `
+                                        <strong class="text-muted">${slot.time} - Прошедшая дата</strong>
+                                    `;
+                                } else {
+                                    slotDiv.setAttribute("onclick",
+                                        `selectTimeSlot('${slot.time}','${scheduleId}','${doctorName}','${date}')`
+                                    );
+                                    slotDiv.innerHTML = `
+                                        <strong>${slot.time}</strong>
+                                        {{-- <div class="slot-controls mt-1">
+                                            <button class="btn btn-sm btn-outline-primary">📅</button>
+                                            <button class="btn btn-sm btn-outline-warning">👥</button>
+                                            <button class="btn btn-sm btn-outline-info">📋</button>
+                                        </div> --}}
+                                    `;
+                                }
                             }
 
                             container.appendChild(slotDiv);
@@ -687,6 +698,17 @@
         }
 
         function selectTimeSlot(timeSlot, scheduleId, doctorName, date) {
+            // Проверка на прошедшую дату
+            const selectedDate = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today) {
+                alert('Нельзя записать пациента на прошедшую дату');
+                return;
+            }
+
             const doctorModal = bootstrap.Modal.getInstance(document.getElementById('doctorScheduleModal'));
             if (doctorModal) doctorModal.hide();
 
@@ -776,6 +798,17 @@
             fetch(`/admin/appointment/get/${appointmentId}`)
                 .then(res => res.json())
                 .then(appointment => {
+                    // Проверка на прошедшую дату
+                    const appointmentDate = new Date(appointment.appointment_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    appointmentDate.setHours(0, 0, 0, 0);
+
+                    if (appointmentDate < today) {
+                        alert('Нельзя редактировать запись на прошедшую дату');
+                        return;
+                    }
+
                     console.log(appointment);
                     document.getElementById('appointmentModalLabel').textContent =
                         `Редактирование записи к врачу ${appointment.schedule.user.name} на ${appointment.appointment_date.split('T')[0]} в ${appointment.appointment_time} - ${appointment.appointment_end_time}`;
@@ -827,30 +860,49 @@
         }
 
         function deleteAppointment(appointmentId) {
-            if (confirm('Вы уверены, что хотите удалить эту запись?')) {
+            // Сначала проверяем дату записи
+            fetch(`/admin/appointment/get/${appointmentId}`)
+                .then(res => res.json())
+                .then(appointment => {
+                    // Проверка на прошедшую дату
+                    const appointmentDate = new Date(appointment.appointment_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    appointmentDate.setHours(0, 0, 0, 0);
 
-                fetch(`/admin/appointment/delete/${appointmentId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Accept': 'application/json',
-                        }
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            alert('Запись успешно удалена!');
-                            // например, можно обновить таблицу
-                            location.reload();
-                        } else {
-                            return response.json().then(data => {
-                                throw new Error(data.message || 'Ошибка при удалении');
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        alert('Ошибка: ' + error.message);
-                    });
-            }
+                    if (appointmentDate < today) {
+                        alert('Нельзя удалить запись на прошедшую дату');
+                        return;
+                    }
+
+                    // Если дата не прошедшая, продолжаем с удалением
+                    if (confirm('Вы уверены, что хотите удалить эту запись?')) {
+                        fetch(`/admin/appointment/delete/${appointmentId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                            }
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                alert('Запись успешно удалена!');
+                                // например, можно обновить таблицу
+                                location.reload();
+                            } else {
+                                return response.json().then(data => {
+                                    throw new Error(data.message || 'Ошибка при удалении');
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            alert('Ошибка: ' + error.message);
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка при получении данных записи: ' + error.message);
+                });
         }
     </script>
 @endsection
