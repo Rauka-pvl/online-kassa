@@ -81,11 +81,10 @@ class AppointmentController extends Controller
             $sortOrder = $request->get('sort_order', 'desc');
 
             if ($sortBy === 'doctor_name') {
-                $appointmentsQuery->join('schedules', 'appointments.schedule_id', '=', 'schedules.id')
-                    ->join('users', 'schedules.user_id', '=', 'users.id')
-                    ->select('appointments.*')
-                    ->orderBy('users.name', $sortOrder)
-                    ->groupBy('appointments.id');
+                // Сортировка по имени врача через подзапрос для совместимости с ONLY_FULL_GROUP_BY
+                $appointmentsQuery->orderByRaw('(SELECT name FROM users
+                    INNER JOIN schedules ON schedules.user_id = users.id
+                    WHERE schedules.id = appointments.schedule_id) ' . $sortOrder);
             } elseif ($sortBy === 'appointment_date') {
                 $appointmentsQuery->orderBy('appointment_date', $sortOrder)
                     ->orderBy('appointment_time', $sortOrder);
@@ -139,25 +138,16 @@ class AppointmentController extends Controller
         $allowedSorts = ['id', 'created_at', 'start_date', 'end_date'];
 
         if ($sortBy === 'doctor_name') {
-            // Сортировка по имени врача через join с избежанием дубликатов
-            $schedulesQuery->leftJoin('users', 'schedules.user_id', '=', 'users.id')
-                ->select('schedules.*')
-                ->orderBy('users.name', $sortOrder)
-                ->groupBy('schedules.id');
+            // Сортировка по имени врача через подзапрос для совместимости с ONLY_FULL_GROUP_BY
+            $schedulesQuery->orderByRaw('(SELECT name FROM users WHERE users.id = schedules.user_id) ' . $sortOrder);
         } elseif ($sortBy === 'appointment_date') {
-            // Сортировка по дате записи через подзапрос или join
-            $schedulesQuery->leftJoin('appointments', 'schedules.id', '=', 'appointments.schedule_id')
-                ->select('schedules.*')
-                ->orderBy('appointments.appointment_date', $sortOrder)
-                ->groupBy('schedules.id');
+            // Сортировка по дате записи через подзапрос
+            $schedulesQuery->orderByRaw('(SELECT MIN(appointment_date) FROM appointments WHERE appointments.schedule_id = schedules.id) ' . $sortOrder);
         } elseif (in_array($sortBy, $allowedSorts)) {
             $schedulesQuery->orderBy('schedules.' . $sortBy, $sortOrder);
         } else {
             // По умолчанию сортировка по имени врача
-            $schedulesQuery->leftJoin('users', 'schedules.user_id', '=', 'users.id')
-                ->select('schedules.*')
-                ->orderBy('users.name', $sortOrder)
-                ->groupBy('schedules.id');
+            $schedulesQuery->orderByRaw('(SELECT name FROM users WHERE users.id = schedules.user_id) ' . $sortOrder);
         }
 
         $schedules = $schedulesQuery->paginate(15)->withQueryString();
