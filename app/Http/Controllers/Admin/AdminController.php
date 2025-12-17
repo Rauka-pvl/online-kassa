@@ -12,6 +12,7 @@ use App\Models\Appointment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -856,4 +857,198 @@ class AdminController extends Controller
 
         return response()->json($catalogs);
     }
-};
+
+    /**
+     * Получить все записи на конкретную дату для графика
+     */
+    public function getAppointmentsForDay(Schedule $schedule, string $date)
+    {
+        $appointments = Appointment::where('schedule_id', $schedule->id)
+            ->whereDate('appointment_date', $date)
+            ->where('status', '!=', 'cancelled')
+            ->with(['service'])
+            ->orderBy('appointment_time')
+            ->get()
+            ->map(function ($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'client_name' => $appointment->client_name,
+                    'patient_iin' => $appointment->patient_iin,
+                    'client_phone' => $appointment->client_phone,
+                    'appointment_time' => $appointment->appointment_time ? Carbon::parse($appointment->appointment_time)->format('H:i') : null,
+                    'appointment_end_time' => $appointment->appointment_end_time ? Carbon::parse($appointment->appointment_end_time)->format('H:i') : null,
+                    'service_name' => $appointment->service ? $appointment->service->name : null,
+                    'status' => $appointment->status,
+                ];
+            });
+
+        return response()->json($appointments);
+    }
+
+    /**
+     * Удалить день из графика
+     */
+    public function removeScheduleDay(Schedule $schedule, Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+        ]);
+
+        $date = $request->input('date');
+        $dateCarbon = Carbon::parse($date);
+
+        // Получаем все записи на этот день
+        $appointments = Appointment::where('schedule_id', $schedule->id)
+            ->whereDate('appointment_date', $date)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        // Проверяем, есть ли конкретная дата в schedule_dates
+        $scheduleDate = $schedule->scheduleDates()->where('date', $date)->first();
+        
+        if ($scheduleDate) {
+            // Удаляем конкретную дату из schedule_dates
+            $scheduleDate->delete();
+        } else {
+            // Если нет конкретной даты, отключаем день недели
+            $dayName = strtolower($dateCarbon->format('l'));
+            
+            // Проверяем, что день недели активен
+            if ($schedule->{$dayName . '_active'}) {
+                $schedule->update([$dayName . '_active' => false]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'appointments' => $appointments->map(function ($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'client_name' => $appointment->client_name,
+                    'appointment_time' => $appointment->appointment_time ? Carbon::parse($appointment->appointment_time)->format('H:i') : null,
+                ];
+            }),
+            'message' => $appointments->count() > 0 
+                ? "День удален. Найдено {$appointments->count()} записей для переноса."
+                : "День успешно удален. Записей не найдено."
+        ]);
+    }
+
+    /**
+     * Перенести записи на другую дату/время
+     */
+    public function rescheduleAppointments(Request $request)
+    {
+        $request->validate([
+            'appointments' => 'required|array',
+            'appointments.*.id' => 'required|exists:appointments,id',
+            'appointments.*.new_date' => 'required|date',
+            'appointments.*.new_time' => 'nullable|date_format:H:i',
+        ]);
+
+        $appointments = $request->input('appointments');
+        $errors = [];
+        $success = [];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($appointments as $appointmentData) {
+                $appointment = Appointment::findOrFail($appointmentData['id']);
+                $schedule = $appointment->schedule;
+                $newDate = $appointmentData['new_date'];
+                $newTime = $appointmentData['new_time'] ?? null;
+
+                // Проверяем, что новая дата является рабочим днем
+                if (!$schedule->isWorkingDate($newDate)) {
+                    $errors[] = [
+                        'appointment_id' => $appointment->id,
+                        'client_name' => $appointment->client_name,
+                        'error' => 'Выбранная дата не является рабочим днем'
+                    ];
+                    continue;
+                }
+
+                // Проверяем, что дата входит в период действия графика
+                if (!$newDate || !Carbon::parse($newDate)->between($schedule->start_date, $schedule->end_date)) {
+                    $errors[] = [
+                        'appointment_id' => $appointment->id,
+                        'client_name' => $appointment->client_name,
+                        'error' => 'Выбранная дата не входит в период действия графика'
+                    ];
+                    continue;
+                }
+
+                // Для неограниченных записей время не обязательно
+                if (!$schedule->hasUnlimitedAppointments()) {
+                    if (empty($newTime)) {
+                        $errors[] = [
+                            'appointment_id' => $appointment->id,
+                            'client_name' => $appointment->client_name,
+                            'error' => 'Необходимо указать время для записи'
+                        ];
+                        continue;
+                    }
+
+                    // Проверяем доступность слота (исключаем саму переносимую запись)
+                    if (!$schedule->isTimeSlotAvailable($newDate, $newTime, $appointment->id)) {
+                        $errors[] = [
+                            'appointment_id' => $appointment->id,
+                            'client_name' => $appointment->client_name,
+                            'error' => "Время {$newTime} на дату {$newDate} уже занято"
+                        ];
+                        continue;
+                    }
+
+                    // Обновляем время
+                    $appointment->appointment_time = $newTime;
+                    $appointment->appointment_end_time = Carbon::parse($newTime)
+                        ->addMinutes($schedule->appointment_interval)
+                        ->format('H:i');
+                } else {
+                    // Для неограниченных записей время может быть null
+                    $appointment->appointment_time = $newTime;
+                    $appointment->appointment_end_time = $newTime ? Carbon::parse($newTime)
+                        ->addMinutes($schedule->appointment_interval ?? 30)
+                        ->format('H:i') : null;
+                }
+
+                // Обновляем дату
+                $appointment->appointment_date = $newDate;
+                $appointment->save();
+
+                $success[] = [
+                    'appointment_id' => $appointment->id,
+                    'client_name' => $appointment->client_name,
+                    'new_date' => $newDate,
+                    'new_time' => $newTime,
+                ];
+            }
+
+            if (count($errors) > 0 && count($success) === 0) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $errors,
+                    'message' => 'Не удалось перенести записи из-за ошибок'
+                ], 422);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => count($success) . ' записей успешно перенесено',
+                'successful' => $success,
+                'errors' => $errors
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при переносе записей: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}

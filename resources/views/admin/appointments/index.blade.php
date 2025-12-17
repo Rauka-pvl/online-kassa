@@ -292,9 +292,18 @@
                                 $isActiveDay = $isWorkingDate && $workingHours && $isInPeriod;
                             @endphp
 
-                            <div class="col-2 p-2 border-end text-center schedule-cell
+                            <div class="col-2 p-2 border-end text-center schedule-cell position-relative
                                 {{ $isActiveDay ? ($isPastDate ? 'bg-secondary-subtle' : 'bg-success-subtle') : 'bg-light text-muted' }}"
                                 @if ($isActiveDay) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $dateString }}', '{{ $date->translatedFormat('D, d M') }}', {{ $isPastDate ? 'true' : 'false' }})" @endif>
+                                @if ($isActiveDay && !$isPastDate)
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-1"
+                                            style="z-index: 10; padding: 2px 6px; font-size: 12px;"
+                                            onclick="event.stopPropagation(); removeScheduleDay({{ $schedule->id }}, '{{ $dateString }}', '{{ $schedule->user->name }}')"
+                                            title="Удалить день из графика">
+                                        ×
+                                    </button>
+                                @endif
                                 @if ($isActiveDay)
                                     <div class="small text-muted">{{ \Carbon\Carbon::parse($workingHours['start'])->format('H:i') }} -
                                         {{ \Carbon\Carbon::parse($workingHours['end'])->format('H:i') }}</div>
@@ -427,6 +436,28 @@
             </div>
         @endif
     @endif
+
+    <!-- Модальное окно удаления дня графика -->
+    <div class="modal fade" id="removeDayModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeDayModalTitle">Удаление дня из графика</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="removeDayContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                            <p class="mt-2">Загрузка данных...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Модальное окно записи пациента -->
     <div class="modal fade" id="appointmentModal" tabindex="-2">
@@ -906,6 +937,332 @@
                 .catch(error => {
                     alert('Ошибка при получении данных записи: ' + error.message);
                 });
+        }
+
+        // Удаление дня из графика
+        let currentScheduleId = null;
+        let currentDate = null;
+        let currentAppointments = [];
+
+        function removeScheduleDay(scheduleId, date, doctorName) {
+            currentScheduleId = scheduleId;
+            currentDate = date;
+
+            const modal = new bootstrap.Modal(document.getElementById('removeDayModal'));
+            document.getElementById('removeDayModalTitle').textContent = `Удаление дня из графика: ${doctorName} - ${date}`;
+
+            // Загружаем записи на этот день
+            loadAppointmentsForDay(scheduleId, date);
+            modal.show();
+        }
+
+        function loadAppointmentsForDay(scheduleId, date) {
+            const content = document.getElementById('removeDayContent');
+            content.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2">Загрузка записей...</p>
+                </div>
+            `;
+
+            fetch(`/admin/schedules/${scheduleId}/day/${date}/appointments`)
+                .then(res => res.json())
+                .then(appointments => {
+                    currentAppointments = appointments;
+                    renderRemoveDayContent(appointments, scheduleId, date);
+                })
+                .catch(err => {
+                    console.error(err);
+                    content.innerHTML = `
+                        <div class="alert alert-danger">
+                            Ошибка при загрузке записей: ${err.message}
+                        </div>
+                    `;
+                });
+        }
+
+        function renderRemoveDayContent(appointments, scheduleId, date) {
+            const content = document.getElementById('removeDayContent');
+
+            if (appointments.length === 0) {
+                // Нет записей - просто подтверждение удаления
+                content.innerHTML = `
+                    <div class="alert alert-info">
+                        <p>На этот день нет записанных пациентов.</p>
+                        <p>Вы уверены, что хотите удалить этот день из графика?</p>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmRemoveDay()">Удалить день</button>
+                    </div>
+                `;
+            } else {
+                // Есть записи - показываем форму переноса
+                const appointmentsList = appointments.map((apt, index) => {
+                    // Если у записи не было времени, поле времени необязательно
+                    const timeRequired = apt.appointment_time ? 'required' : '';
+                    return `
+                    <tr>
+                        <td>${apt.client_name}</td>
+                        <td>${apt.appointment_time || 'Без времени'}</td>
+                        <td>${apt.service_name || '-'}</td>
+                        <td>
+                            <select class="form-select form-select-sm" id="new_time_${apt.id}"
+                                    onchange="updateRescheduleTime(${apt.id})" ${timeRequired}>
+                                <option value="">${apt.appointment_time ? 'Выберите время' : 'Время необязательно'}</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+                }).join('');
+
+                content.innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>Внимание!</strong> На этот день записано <strong>${appointments.length}</strong> пациентов.
+                        Необходимо перенести их на другую дату перед удалением дня.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Выберите новую дату для переноса:</label>
+                        <input type="date" class="form-control" id="new_reschedule_date"
+                               min="${new Date().toISOString().split('T')[0]}"
+                               onchange="loadAvailableSlotsForReschedule(${scheduleId})">
+                    </div>
+
+                    <div id="availableSlotsContainer" class="mb-3" style="display: none;">
+                        <label class="form-label">Доступные временные слоты:</label>
+                        <div id="slotsList" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Пациент</th>
+                                    <th>Текущее время</th>
+                                    <th>Услуга</th>
+                                    <th>Новое время</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${appointmentsList}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-primary" onclick="rescheduleAndRemoveDay()" id="rescheduleBtn" disabled>
+                            Перенести и удалить день
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        let availableSlots = [];
+        let selectedSlots = {};
+
+        function loadAvailableSlotsForReschedule(scheduleId) {
+            const newDate = document.getElementById('new_reschedule_date').value;
+            if (!newDate) {
+                document.getElementById('availableSlotsContainer').style.display = 'none';
+                return;
+            }
+
+            fetch(`/admin/schedules/${scheduleId}/dayBooked/${newDate}`)
+                .then(res => res.json())
+                .then(data => {
+                    availableSlots = data.available_slots || [];
+                    const slotsList = document.getElementById('slotsList');
+
+                    if (availableSlots.length === 0) {
+                        slotsList.innerHTML = '<div class="alert alert-warning">Нет доступных слотов на эту дату</div>';
+                    } else {
+                        slotsList.innerHTML = availableSlots.map(slot => `
+                            <button type="button" class="btn btn-outline-primary btn-sm slot-btn"
+                                    onclick="selectSlot('${slot}')" data-slot="${slot}">
+                                ${slot}
+                            </button>
+                        `).join('');
+                    }
+
+                    document.getElementById('availableSlotsContainer').style.display = 'block';
+
+                    // Обновляем селекты времени для всех записей
+                    currentAppointments.forEach(apt => {
+                        updateTimeSelect(apt.id, availableSlots);
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('slotsList').innerHTML =
+                        '<div class="alert alert-danger">Ошибка загрузки слотов</div>';
+                });
+        }
+
+        function updateTimeSelect(appointmentId, slots) {
+            const select = document.getElementById(`new_time_${appointmentId}`);
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Выберите время</option>';
+            slots.forEach(slot => {
+                const option = document.createElement('option');
+                option.value = slot;
+                option.textContent = slot;
+                select.appendChild(option);
+            });
+        }
+
+        function selectSlot(slot) {
+            // Убираем выделение с других кнопок
+            document.querySelectorAll('.slot-btn').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-primary');
+            });
+
+            // Выделяем выбранную кнопку
+            const btn = document.querySelector(`[data-slot="${slot}"]`);
+            if (btn) {
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary');
+            }
+        }
+
+        function updateRescheduleTime(appointmentId) {
+            const select = document.getElementById(`new_time_${appointmentId}`);
+            selectedSlots[appointmentId] = select.value;
+            checkRescheduleReady();
+        }
+
+        function checkRescheduleReady() {
+            const newDate = document.getElementById('new_reschedule_date')?.value;
+            if (!newDate) {
+                const rescheduleBtn = document.getElementById('rescheduleBtn');
+                if (rescheduleBtn) {
+                    rescheduleBtn.disabled = true;
+                }
+                return;
+            }
+
+            // Проверяем, что для всех записей, у которых было время, выбрано новое время
+            let allReady = true;
+            currentAppointments.forEach(apt => {
+                const select = document.getElementById(`new_time_${apt.id}`);
+                // Если у записи было время, то новое время обязательно
+                if (select && apt.appointment_time && !select.value) {
+                    allReady = false;
+                }
+            });
+
+            const rescheduleBtn = document.getElementById('rescheduleBtn');
+            if (rescheduleBtn) {
+                rescheduleBtn.disabled = !allReady;
+            }
+        }
+
+        function rescheduleAndRemoveDay() {
+            const newDate = document.getElementById('new_reschedule_date').value;
+            if (!newDate) {
+                alert('Выберите новую дату для переноса');
+                return;
+            }
+
+            // Формируем данные для переноса
+            const appointmentsData = currentAppointments.map(apt => {
+                const select = document.getElementById(`new_time_${apt.id}`);
+                return {
+                    id: apt.id,
+                    new_date: newDate,
+                    new_time: select ? select.value : null
+                };
+            });
+
+            // Отправляем запрос на перенос
+            fetch('/admin/appointments/reschedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    appointments: appointmentsData
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(data => {
+                        throw new Error(data.message || 'Ошибка при переносе записей');
+                    });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Показываем успешные и неуспешные переносы
+                    let message = data.message;
+                    if (data.errors && data.errors.length > 0) {
+                        message += '\n\nОшибки:\n';
+                        data.errors.forEach(err => {
+                            message += `- ${err.client_name}: ${err.error}\n`;
+                        });
+                    }
+
+                    if (data.errors && data.errors.length > 0 && data.successful.length === 0) {
+                        alert(message);
+                        return; // Не удаляем день, если ничего не перенесено
+                    }
+
+                    // После успешного переноса удаляем день
+                    if (data.successful.length > 0) {
+                        confirmRemoveDay();
+                    }
+                } else {
+                    // Показываем ошибки
+                    let errorMsg = 'Ошибки при переносе:\n';
+                    if (data.errors) {
+                        data.errors.forEach(err => {
+                            errorMsg += `- ${err.client_name}: ${err.error}\n`;
+                        });
+                    }
+                    alert(errorMsg);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка при переносе записей: ' + err.message);
+            });
+        }
+
+        function confirmRemoveDay() {
+            fetch(`/admin/schedules/${currentScheduleId}/remove-day`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: currentDate
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('removeDayModal')).hide();
+                    location.reload(); // Перезагружаем страницу для обновления календаря
+                } else {
+                    alert('Ошибка при удалении дня: ' + (data.message || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка при удалении дня: ' + err.message);
+            });
         }
     </script>
 @endsection

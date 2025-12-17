@@ -56,6 +56,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::get('/schedules/{schedule}/show', [AdminController::class, 'showScheduleDetails'])->name('schedules.show');
     Route::get('/schedules/{schedule}/day/{date}', [AdminController::class, 'getScheduleDayView'])->name('schedules.day-view');
     Route::get('/schedules/{schedule}/dayBooked/{date}', [AdminController::class, 'getTimeSlotsAdmin'])->name('schedules.dayBooked');
+    Route::get('/schedules/{schedule}/day/{date}/appointments', [AdminController::class, 'getAppointmentsForDay'])->name('schedules.day-appointments');
+    Route::post('/schedules/{schedule}/remove-day', [AdminController::class, 'removeScheduleDay'])->name('schedules.remove-day');
 
     // // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments');
@@ -65,6 +67,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::post('/appointment/update/{appointment}', [AppointmentController::class, 'updateAppointment'])->name('appointments.update');
     Route::get('/appointment/get/{appointment}', [AppointmentController::class, 'getAppointments'])->name('appointments.get');
     Route::delete('/appointment/delete/{appointment}', [AppointmentController::class, 'destroyAppointment'])->name('appointments.destroy');
+    Route::post('/appointments/reschedule', [AdminController::class, 'rescheduleAppointments'])->name('appointments.reschedule');
 
 
     // Reports
