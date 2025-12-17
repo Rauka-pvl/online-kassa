@@ -102,7 +102,7 @@ class AppointmentController extends Controller
         }
 
         // Обычный режим - показываем графики
-        $schedulesQuery = Schedule::with(['appointments', 'user'])
+        $schedulesQuery = Schedule::with(['appointments', 'user', 'scheduleDates'])
             ->where(function ($q) use ($dateRange) {
                 $q->whereBetween('start_date', [$dateRange[0], end($dateRange)])
                     ->orWhereBetween('end_date', [$dateRange[0], end($dateRange)])

@@ -504,12 +504,29 @@ class AdminController extends Controller
         $schedule = Schedule::create($scheduleData);
         $schedule->services()->attach($request->services);
 
+        // Сохраняем конкретные даты, если они указаны
+        if ($request->filled('schedule_dates')) {
+            foreach ($request->schedule_dates as $dateData) {
+                if (!empty($dateData['date'])) {
+                    $schedule->scheduleDates()->create([
+                        'date' => $dateData['date'],
+                        'start_time' => $dateData['start_time'] ?? null,
+                        'end_time' => $dateData['end_time'] ?? null,
+                        'is_active' => $dateData['is_active'] ?? true,
+                    ]);
+                }
+            }
+        }
+
         return redirect()->route('admin.schedules')->with('success', 'График успешно создан');
     }
 
     public function editSchedule(Schedule $schedule): View
     {
         $doctors = User::where('role', 4)->where('is_active', true)->get();
+        
+        // Загружаем конкретные даты графика
+        $schedule->load('scheduleDates');
 
         // Загружаем каталоги с подкаталогами и активными услугами
         $catalogs = Catalog::with([
@@ -588,6 +605,24 @@ class AdminController extends Controller
         $schedule->update($scheduleData);
         $schedule->services()->sync($request->services);
 
+        // Обновляем конкретные даты
+        if ($request->filled('schedule_dates')) {
+            // Удаляем старые даты
+            $schedule->scheduleDates()->delete();
+            
+            // Добавляем новые даты
+            foreach ($request->schedule_dates as $dateData) {
+                if (!empty($dateData['date'])) {
+                    $schedule->scheduleDates()->create([
+                        'date' => $dateData['date'],
+                        'start_time' => $dateData['start_time'] ?? null,
+                        'end_time' => $dateData['end_time'] ?? null,
+                        'is_active' => $dateData['is_active'] ?? true,
+                    ]);
+                }
+            }
+        }
+
         return redirect()->route('admin.schedules')->with('success', 'График успешно обновлен');
     }
 
@@ -638,8 +673,8 @@ class AdminController extends Controller
 
     public function getTimeSlotsAdmin(Schedule $schedule, string $date)
     {
-        // Проверяем, работает ли врач в этот день
-        if (!$schedule->isWorkingDay(strtolower(Carbon::parse($date)->format('l')))) {
+        // Проверяем, работает ли врач в этот день (с учетом конкретных дат)
+        if (!$schedule->isWorkingDate($date)) {
             return response()->json([]);
         }
 
@@ -765,7 +800,7 @@ class AdminController extends Controller
     public function getScheduleDayView(Schedule $schedule, string $date)
     {
         $daySchedule = $schedule->getDaySchedule($date);
-        $workingHours = $schedule->getWorkingHours(strtolower(Carbon::parse($date)->format('l')));
+        $workingHours = $schedule->getWorkingHoursForDate($date);
 
         return response()->json([
             'schedule' => $daySchedule,

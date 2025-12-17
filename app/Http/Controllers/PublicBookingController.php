@@ -74,9 +74,8 @@ class PublicBookingController extends Controller
         ]);
 
         $date = Carbon::parse($request->query('date'))->format('Y-m-d');
-        $dayName = strtolower(Carbon::parse($date)->format('l'));
 
-        if (!$schedule->isWorkingDay($dayName)) {
+        if (!$schedule->isWorkingDate($date)) {
             return response()->json([
                 'unlimited' => $schedule->hasUnlimitedAppointments(),
                 'working' => false,
@@ -85,7 +84,7 @@ class PublicBookingController extends Controller
             ]);
         }
 
-        $workingHours = $schedule->getWorkingHours($dayName);
+        $workingHours = $schedule->getWorkingHoursForDate($date);
 
         if ($schedule->hasUnlimitedAppointments()) {
             return response()->json([

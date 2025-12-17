@@ -189,6 +189,44 @@
                         </div>
                         <div class="form-text">График будет действовать в указанный период, включая начальную и конечную даты.</div>
                     </div>
+
+                    <div class="mb-4">
+                        <h5>Конкретные даты (опционально)</h5>
+                        <div class="alert alert-info">
+                            <strong>💡 Совет:</strong> Вы можете указать конкретные даты с индивидуальным временем работы. 
+                            Эти даты будут иметь приоритет над днями недели.
+                        </div>
+                        <div id="schedule-dates-container">
+                            <div class="schedule-date-item mb-3 p-3 border rounded">
+                                <div class="row align-items-end">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Дата</label>
+                                        <input type="date" class="form-control" name="schedule_dates[0][date]">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Начало</label>
+                                        <input type="time" class="form-control" name="schedule_dates[0][start_time]" value="09:00">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Окончание</label>
+                                        <input type="time" class="form-control" name="schedule_dates[0][end_time]" value="18:00">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="schedule_dates[0][is_active]" value="1" checked>
+                                            <label class="form-check-label">Активна</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleDate(this)">×</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addScheduleDate()">
+                            + Добавить дату
+                        </button>
+                    </div>
                     <div class="mb-4">
                         <h5 class="mb-3">Услуги врача *</h5>
                         <div class="alert alert-info border-0 shadow-sm mb-4" id="services_notice" role="alert">
@@ -843,6 +881,46 @@ function updateCounts(catalogId) {
             subCatalogCount.style.display = checkedSubCatalogServices > 0 ? 'inline' : 'none';
         }
     });
+}
+// Управление конкретными датами
+let scheduleDateIndex = 1;
+
+function addScheduleDate() {
+    const container = document.getElementById('schedule-dates-container');
+    const newDateItem = document.createElement('div');
+    newDateItem.className = 'schedule-date-item mb-3 p-3 border rounded';
+    newDateItem.innerHTML = `
+        <div class="row align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Дата</label>
+                <input type="date" class="form-control" name="schedule_dates[${scheduleDateIndex}][date]">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Начало</label>
+                <input type="time" class="form-control" name="schedule_dates[${scheduleDateIndex}][start_time]" value="09:00">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Окончание</label>
+                <input type="time" class="form-control" name="schedule_dates[${scheduleDateIndex}][end_time]" value="18:00">
+            </div>
+            <div class="col-md-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="schedule_dates[${scheduleDateIndex}][is_active]" value="1" checked>
+                    <label class="form-check-label">Активна</label>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleDate(this)">×</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(newDateItem);
+    scheduleDateIndex++;
+}
+
+function removeScheduleDate(button) {
+    const dateItem = button.closest('.schedule-date-item');
+    dateItem.remove();
 }
 </script>
 @endsection

@@ -72,6 +72,11 @@ class Schedule extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function scheduleDates(): HasMany
+    {
+        return $this->hasMany(ScheduleDate::class);
+    }
+
     public function getWorkingDays(): array
     {
         $days = [];
@@ -94,6 +99,32 @@ class Schedule extends Model
         return $this->{strtolower($dayName) . '_active'};
     }
 
+    /**
+     * Проверяет, является ли конкретная дата рабочим днем
+     */
+    public function isWorkingDate(string $date): bool
+    {
+        // Сначала проверяем конкретные даты (используем уже загруженные данные, если есть)
+        if ($this->relationLoaded('scheduleDates')) {
+            $scheduleDate = $this->scheduleDates->first(function ($sd) use ($date) {
+                return $sd->date->format('Y-m-d') === $date && $sd->is_active;
+            });
+        } else {
+            $scheduleDate = $this->scheduleDates()
+                ->where('date', $date)
+                ->where('is_active', true)
+                ->first();
+        }
+        
+        if ($scheduleDate) {
+            return true;
+        }
+
+        // Если нет конкретной даты, проверяем день недели
+        $dayName = strtolower(Carbon::parse($date)->format('l'));
+        return $this->isWorkingDay($dayName);
+    }
+
     public function getWorkingHours(string $dayName): ?array
     {
         $day = strtolower($dayName);
@@ -107,13 +138,41 @@ class Schedule extends Model
         ];
     }
 
+    /**
+     * Получает рабочие часы для конкретной даты
+     */
+    public function getWorkingHoursForDate(string $date): ?array
+    {
+        // Сначала проверяем конкретные даты (используем уже загруженные данные, если есть)
+        if ($this->relationLoaded('scheduleDates')) {
+            $scheduleDate = $this->scheduleDates->first(function ($sd) use ($date) {
+                return $sd->date->format('Y-m-d') === $date && $sd->is_active;
+            });
+        } else {
+            $scheduleDate = $this->scheduleDates()
+                ->where('date', $date)
+                ->where('is_active', true)
+                ->first();
+        }
+        
+        if ($scheduleDate && $scheduleDate->start_time && $scheduleDate->end_time) {
+            return [
+                'start' => $scheduleDate->start_time,
+                'end' => $scheduleDate->end_time
+            ];
+        }
+
+        // Если нет конкретной даты, используем день недели
+        $dayName = strtolower(Carbon::parse($date)->format('l'));
+        return $this->getWorkingHours($dayName);
+    }
+
     // НОВАЯ ЛОГИКА: генерация временных слотов на основе интервала графика
     // ОБНОВЛЕННАЯ ЛОГИКА: генерация временных слотов с учетом неограниченных записей
     public function generateTimeSlots(string $date): array
     {
-        $dayName = strtolower(Carbon::parse($date)->format('l'));
-
-        if (!$this->isWorkingDay($dayName)) {
+        // Проверяем, является ли дата рабочим днем (с учетом конкретных дат)
+        if (!$this->isWorkingDate($date)) {
             return [];
         }
 
@@ -122,7 +181,8 @@ class Schedule extends Model
             return ['any_time']; // Специальный маркер
         }
 
-        $workingHours = $this->getWorkingHours($dayName);
+        // Получаем рабочие часы для конкретной даты (с учетом конкретных дат)
+        $workingHours = $this->getWorkingHoursForDate($date);
         if (!$workingHours || !$this->appointment_interval) {
             return [];
         }

@@ -281,20 +281,23 @@
                         </div>
                         @foreach ($period as $date)
                             @php
-                                $dayKey = strtolower($date->format('l')); // например, monday
-                                $active = $schedule->{$dayKey . '_active'};
-                                $start = $schedule->{$dayKey . '_start'};
-                                $end = $schedule->{$dayKey . '_end'};
+                                $dateString = $date->format('Y-m-d');
                                 $isPastDate = $date < Carbon::today();
-                                $isActiveDay = $active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true);
+                                // Проверяем, является ли дата рабочим днем (с учетом конкретных дат)
+                                $isWorkingDate = $schedule->isWorkingDate($dateString);
+                                // Получаем рабочие часы для этой даты (с учетом конкретных дат)
+                                $workingHours = $schedule->getWorkingHoursForDate($dateString);
+                                // Проверяем, что дата входит в период действия графика
+                                $isInPeriod = $date->between($schedule->start_date, $schedule->end_date, true);
+                                $isActiveDay = $isWorkingDate && $workingHours && $isInPeriod;
                             @endphp
 
                             <div class="col-2 p-2 border-end text-center schedule-cell
                                 {{ $isActiveDay ? ($isPastDate ? 'bg-secondary-subtle' : 'bg-success-subtle') : 'bg-light text-muted' }}"
-                                @if ($isActiveDay) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $date->format('Y-m-d') }}', '{{ $date->translatedFormat('D, d M') }}', {{ $isPastDate ? 'true' : 'false' }})" @endif>
-                                @if ($active && $start && $end && $date->between($schedule->start_date, $schedule->end_date, true))
-                                    <div class="small text-muted">{{ \Carbon\Carbon::parse($start)->format('H:i') }} -
-                                        {{ \Carbon\Carbon::parse($end)->format('H:i') }}</div>
+                                @if ($isActiveDay) onclick="openDoctorSchedule({{ $schedule->id }}, '{{ $schedule->user->name }}', '{{ $dateString }}', '{{ $date->translatedFormat('D, d M') }}', {{ $isPastDate ? 'true' : 'false' }})" @endif>
+                                @if ($isActiveDay)
+                                    <div class="small text-muted">{{ \Carbon\Carbon::parse($workingHours['start'])->format('H:i') }} -
+                                        {{ \Carbon\Carbon::parse($workingHours['end'])->format('H:i') }}</div>
                                     @if (!$schedule->appointment_interval && $schedule->unlimited_appointments)
                                         <div class="text-success fw-bold">
                                             Безлимитный приём
