@@ -1,7 +1,7 @@
 @extends('layouts.client')
 
 @section('content')
-<div class="home-page">
+{{-- <div class="home-page">
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="hero-content">
@@ -98,5 +98,5 @@
             </div>
         </div>
     </section>
-</div>
+</div> --}}
 @endsection
