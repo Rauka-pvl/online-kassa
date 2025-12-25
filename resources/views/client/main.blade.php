@@ -1,7 +1,13 @@
 @extends('layouts.client')
 
+@section('breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">
+        <i class="fas fa-home"></i> Главная
+    </li>
+@endsection
+
 @section('content')
-{{-- <div class="home-page">
+<div class="home-page">
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="hero-content">
@@ -98,5 +104,5 @@
             </div>
         </div>
     </section>
-</div> --}}
+</div>
 @endsection
