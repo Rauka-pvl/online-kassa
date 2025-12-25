@@ -80,7 +80,7 @@
                             </td>
                             <td>
                                 <span class="text-muted">
-                                    {{ Str::limit($catalog->description, 50) }}
+                                    {{ \Illuminate\Support\Str::limit($catalog->description, 50) }}
                                 </span>
                             </td>
                             <td>

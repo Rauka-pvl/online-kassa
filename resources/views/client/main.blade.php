@@ -46,7 +46,7 @@
                     <div class="category-card-content">
                         <h3 class="category-card-title">{{ $catalog->name }}</h3>
                         @if($catalog->description)
-                            <p class="category-card-desc">{{ Str::limit($catalog->description, 100) }}</p>
+                            <p class="category-card-desc">{{ \Illuminate\Support\Str::limit($catalog->description, 100) }}</p>
                         @endif
                         <span class="category-card-link">
                             Подробнее <i class="fas fa-arrow-right"></i>
