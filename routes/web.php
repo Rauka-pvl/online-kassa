@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('main');
+    return 123;
+    // return redirect()->route('main');
 });
 Route::get('/main', [ClientController::class, 'main'])->name('main');
 Route::get('/catalog', [ClientController::class, 'catalog'])->name('catalog');
