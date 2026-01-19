@@ -12,9 +12,9 @@ class ClientController extends Controller
 {
     public function main()
     {
-        dump('main');
-        // $catalogs = Catalog::all();
-        // return view('client.main', compact('catalogs'));
+        // dump('main');
+        $catalogs = Catalog::all();
+        return view('client.main', compact('catalogs'));
     }
 
     public function catalog()
