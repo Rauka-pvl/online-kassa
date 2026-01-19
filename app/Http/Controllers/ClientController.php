@@ -12,7 +12,7 @@ class ClientController extends Controller
 {
     public function main()
     {
-        dd('main');
+        // dd('main');
         $catalogs = Catalog::all();
         return view('client.main', compact('catalogs'));
     }
