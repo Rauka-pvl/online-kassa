@@ -6,6 +6,9 @@ use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', function () {
+    return redirect()->route('main');
+});
 Route::get('/main', [ClientController::class, 'main'])->name('main');
 Route::get('/catalog', [ClientController::class, 'catalog'])->name('catalog');
 Route::get('/sub-catalog/{id}', [ClientController::class, 'subCatalog'])->name('sub-catalog');
