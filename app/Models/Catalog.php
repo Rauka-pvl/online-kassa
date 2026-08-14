@@ -23,9 +23,4 @@ class Catalog extends Model
     {
         return $this->hasMany(SubCatalog::class);
     }
-
-    public function services()
-    {
-        return $this->hasManyThrough(Service::class, SubCatalog::class);
-    }
 }

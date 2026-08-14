@@ -25,14 +25,18 @@ function renderSearchResults(data, query) {
         });
     }
 
-    if (data.services) {
+        if (data.services) {
         data.services.forEach(s => {
+            const place = (s.subcatalogs && s.subcatalogs.length)
+                ? s.subcatalogs.join(', ')
+                : `${s.catalog ?? ''}${s.subcatalog ? ' • ' + s.subcatalog : ''}`;
+            const href = s.url || `/services/${encodeURIComponent(s.subcatalog_id || '')}`;
             items.push(`
-                <a class="result-item" href="/sub-catalog/${encodeURIComponent(s.subcatalog_id || '')}" style="display:flex;gap:.75rem;align-items:center;padding:.5rem .75rem;text-decoration:none;color:#333;">
+                <a class="result-item" href="${href}" style="display:flex;gap:.75rem;align-items:center;padding:.5rem .75rem;text-decoration:none;color:#333;">
                     <i class="fas fa-stethoscope" style="color:#20c997;"></i>
                     <div>
                         <div style="font-weight:600;">${s.name}</div>
-                        <div style="font-size:12px;color:#6c757d;">${s.catalog ?? ''} ${s.subcatalog ? '• ' + s.subcatalog : ''} — ${s.price}</div>
+                        <div style="font-size:12px;color:#6c757d;">${place} — ${s.price}</div>
                     </div>
                 </a>
             `);

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class SubCatalog extends Model
 {
@@ -21,8 +21,13 @@ class SubCatalog extends Model
         return $this->belongsTo(Catalog::class);
     }
 
-    public function services(): HasMany
+    /**
+     * Services linked via pivot (supports multiple subcatalogs per service).
+     */
+    public function services(): BelongsToMany
     {
-        return $this->hasMany(Service::class, 'sub_catalog_id');
+        return $this->belongsToMany(Service::class, 'service_sub_catalog')
+            ->withPivot('is_primary')
+            ->withTimestamps();
     }
 }

@@ -31,18 +31,27 @@ class SearchController extends Controller
                 $q->where('name', 'like', "%$query%")
                   ->orWhere('description', 'like', "%$query%");
             })
-            ->with(['subCatalog.catalog'])
-            ->select(['id', 'name', 'sub_catalog_id', 'price'])
+            ->with(['subCatalogs.catalog'])
+            ->select(['id', 'name', 'price'])
             ->limit(10)
             ->get()
             ->map(function ($service) {
+                $labels = $service->subCatalogs->map(function ($sub) {
+                    $catalog = optional($sub->catalog)->name;
+                    return trim(($catalog ? $catalog . ' → ' : '') . $sub->name);
+                })->filter()->values();
+
+                $primary = $service->subCatalog;
+
                 return [
                     'id' => $service->id,
                     'name' => $service->name,
                     'price' => $service->formatted_price,
-                    'subcatalog_id' => $service->sub_catalog_id,
-                    'catalog' => optional(optional($service->subCatalog)->catalog)->name,
-                    'subcatalog' => optional($service->subCatalog)->name,
+                    'subcatalog_id' => $primary?->id,
+                    'catalog' => optional(optional($primary)->catalog)->name,
+                    'subcatalog' => optional($primary)->name,
+                    'subcatalogs' => $labels->all(),
+                    'url' => route('service.booking', $service),
                 ];
             });
 
@@ -52,5 +61,3 @@ class SearchController extends Controller
         ]);
     }
 }
-
-

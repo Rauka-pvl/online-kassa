@@ -82,6 +82,15 @@
                         </button>
                     </div>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label small d-none d-md-block">&nbsp;</label>
+                    <a href="{{ route('admin.appointments.print', ['date' => request('date') ?? date('Y-m-d'), 'autoprint' => 1]) }}"
+                       class="btn btn-outline-dark btn-sm w-100"
+                       target="_blank"
+                       title="Печать записей за выбранную дату">
+                        🖨 Печать за день
+                    </a>
+                </div>
                 <div class="col-md-3">
                     <label class="form-label small">Сортировка:</label>
                     <select name="sort_by" class="form-select form-select-sm">

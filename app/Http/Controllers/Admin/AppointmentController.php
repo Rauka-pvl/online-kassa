@@ -260,4 +260,38 @@ class AppointmentController extends Controller
         $appointment->load(['schedule.user', 'service']);
         return response()->json($appointment);
     }
+
+    /**
+     * Printable list of patients booked for a specific date.
+     */
+    public function printByDate(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+
+        $date = $validated['date'];
+
+        $appointments = Appointment::with(['schedule.user', 'service'])
+            ->whereDate('appointment_date', $date)
+            ->where('status', '!=', 'cancelled')
+            ->orderByRaw('(SELECT name FROM users INNER JOIN schedules ON schedules.user_id = users.id WHERE schedules.id = appointments.schedule_id)')
+            ->orderBy('appointment_time')
+            ->orderBy('id')
+            ->get();
+
+        $grouped = $appointments->groupBy(function (Appointment $appointment) {
+            return optional(optional($appointment->schedule)->user)->id ?? 0;
+        });
+
+        $statusLabels = [
+            'pending' => 'Ожидает',
+            'confirmed' => 'Подтверждено',
+            'completed' => 'Завершено',
+            'cancelled' => 'Отменено',
+            'canceled' => 'Отменено',
+        ];
+
+        return view('admin.appointments.print', compact('appointments', 'grouped', 'date', 'statusLabels'));
+    }
 }

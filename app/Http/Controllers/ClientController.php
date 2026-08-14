@@ -21,7 +21,7 @@ class ClientController extends Controller
     {
         $catalogs = Catalog::with(['subCatalogs' => function ($q) {
             $q->withCount(['services' => function ($sq) {
-                $sq->where('is_active', true);
+                $sq->where('services.is_active', true);
             }]);
         }])->get();
         return view('client.catalog', compact('catalogs'));
@@ -29,16 +29,16 @@ class ClientController extends Controller
     public function subCatalog($id)
     {
         $subCatalogs = SubCatalog::where('catalog_id', $id)->withCount(['services' => function ($q) {
-            $q->where('is_active', true);
+            $q->where('services.is_active', true);
         }])->get();
         return view('client.subcatalog', compact('subCatalogs'));
     }
     public function services(int $subCatalogId)
     {
         $subCatalog = SubCatalog::with(['services' => function ($q) {
-            $q->where('is_active', true)
+            $q->where('services.is_active', true)
                 ->with(['schedules.user']);
-        }])->findOrFail($subCatalogId);
+        }, 'catalog'])->findOrFail($subCatalogId);
 
         $services = $subCatalog->services;
 
@@ -47,6 +47,7 @@ class ClientController extends Controller
 
     public function booking(Service $service)
     {
+        $service->load(['subCatalogs.catalog']);
         // Все активные графики, где доступна данная услуга
         $schedules = $service->schedules()->with('user')->get();
         return view('client.booking', compact('service', 'schedules'));

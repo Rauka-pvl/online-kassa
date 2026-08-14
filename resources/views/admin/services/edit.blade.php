@@ -15,36 +15,69 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('admin.services.update', $service) }}" method="POST">
+                <form action="{{ route('admin.services.update', $service) }}" method="POST" id="serviceForm">
                     @csrf
                     @method('PUT')
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="sub_catalog_id" class="form-label">Подкаталог *</label>
-                            <select class="form-select @error('sub_catalog_id') is-invalid @enderror"
-                                    id="sub_catalog_id" name="sub_catalog_id" required>
-                                <option value="">Выберите подкаталог</option>
-                                @foreach($subCatalogs as $subCatalog)
-                                    <option value="{{ $subCatalog->id }}"
-                                            {{ old('sub_catalog_id', $service->sub_catalog_id) == $subCatalog->id ? 'selected' : '' }}>
-                                        {{ $subCatalog->catalog->name }} → {{ $subCatalog->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('sub_catalog_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название услуги *</label>
+                        <input type="text" class="form-control @error('name') is-invalid @enderror"
+                               id="name" name="name" value="{{ old('name', $service->name) }}" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="name" class="form-label">Название услуги *</label>
-                            <input type="text" class="form-control @error('name') is-invalid @enderror"
-                                   id="name" name="name" value="{{ old('name', $service->name) }}" required>
-                            @error('name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                    <div class="mb-3">
+                        <label class="form-label">Подкаталоги *</label>
+                        <p class="text-muted small mb-2">
+                            Можно привязать услугу к любому количеству подкаталогов.
+                            Отметьте «Основной» — он используется в хлебных крошках и поиске.
+                        </p>
+                        <div class="border rounded p-3 @error('sub_catalog_ids') border-danger @enderror"
+                             style="max-height: 320px; overflow-y: auto;">
+                            @php
+                                $linkedIds = $service->subCatalogs->pluck('id')->map(fn ($id) => (int) $id);
+                                $oldIds = collect(old('sub_catalog_ids', $linkedIds->all()))->map(fn ($id) => (int) $id);
+                                $oldPrimary = (int) old('primary_sub_catalog_id', $service->primary_sub_catalog_id);
+                            @endphp
+                            @forelse($subCatalogs as $subCatalog)
+                                @php $checked = $oldIds->contains($subCatalog->id); @endphp
+                                <div class="d-flex align-items-center gap-2 mb-2 service-subcatalog-row">
+                                    <div class="form-check flex-grow-1 mb-0">
+                                        <input class="form-check-input subcatalog-check"
+                                               type="checkbox"
+                                               name="sub_catalog_ids[]"
+                                               value="{{ $subCatalog->id }}"
+                                               id="sub_catalog_{{ $subCatalog->id }}"
+                                               {{ $checked ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="sub_catalog_{{ $subCatalog->id }}">
+                                            {{ $subCatalog->catalog->name ?? '—' }} → {{ $subCatalog->name }}
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input primary-radio"
+                                               type="radio"
+                                               name="primary_sub_catalog_id"
+                                               value="{{ $subCatalog->id }}"
+                                               id="primary_{{ $subCatalog->id }}"
+                                               {{ $oldPrimary === (int) $subCatalog->id ? 'checked' : '' }}
+                                               {{ $checked ? '' : 'disabled' }}>
+                                        <label class="form-check-label small text-muted" for="primary_{{ $subCatalog->id }}">
+                                            Основной
+                                        </label>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="text-muted">Сначала создайте подкаталоги</div>
+                            @endforelse
                         </div>
+                        @error('sub_catalog_ids')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                        @error('sub_catalog_ids.*')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="mb-3">
@@ -92,3 +125,47 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('serviceForm');
+    if (!form) return;
+
+    function syncPrimaryRadios() {
+        const checks = form.querySelectorAll('.subcatalog-check');
+        let firstChecked = null;
+        let primaryStillValid = false;
+        const currentPrimary = form.querySelector('.primary-radio:checked');
+
+        checks.forEach(function (cb) {
+            const radio = form.querySelector('#primary_' + cb.value);
+            if (!radio) return;
+            radio.disabled = !cb.checked;
+            if (cb.checked && !firstChecked) firstChecked = radio;
+            if (cb.checked && currentPrimary && currentPrimary.value === cb.value) {
+                primaryStillValid = true;
+            }
+        });
+
+        if (!primaryStillValid && firstChecked) {
+            firstChecked.checked = true;
+        }
+    }
+
+    form.querySelectorAll('.subcatalog-check').forEach(function (cb) {
+        cb.addEventListener('change', syncPrimaryRadios);
+    });
+
+    form.addEventListener('submit', function (e) {
+        const checked = form.querySelectorAll('.subcatalog-check:checked');
+        if (!checked.length) {
+            e.preventDefault();
+            alert('Выберите хотя бы один подкаталог.');
+        }
+    });
+
+    syncPrimaryRadios();
+});
+</script>
+@endpush

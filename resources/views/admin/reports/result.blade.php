@@ -82,7 +82,14 @@
                         @forelse($reportData as $service)
                             <tr>
                                 <td>{{ $service->name }}</td>
-                                <td>{{ $service->subCatalog->name }}</td>
+                                <td>
+                                    @php
+                                        $links = $service->relationLoaded('subCatalogs') && $service->subCatalogs->isNotEmpty()
+                                            ? $service->subCatalogs
+                                            : collect([$service->subCatalog])->filter();
+                                    @endphp
+                                    {{ $links->pluck('name')->implode(', ') ?: '—' }}
+                                </td>
                                 <td>{{ $service->appointments_count }}</td>
                                 <td>{{ $service->formatted_price }}</td>
                             </tr>

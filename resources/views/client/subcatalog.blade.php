@@ -38,7 +38,7 @@
                 <div class="subcatalog-card-content">
                     <h3 class="subcatalog-card-title">{{ $subCatalog->name }}</h3>
                     @php
-                        $servicesCount = $subCatalog->services()->where('is_active', true)->count();
+                        $servicesCount = $subCatalog->services()->where('services.is_active', true)->count();
                     @endphp
                     @if($servicesCount > 0)
                         <p class="subcatalog-card-count">

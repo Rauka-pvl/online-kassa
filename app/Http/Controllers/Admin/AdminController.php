@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -195,14 +196,45 @@ class AdminController extends Controller
 
     public function destroySubCatalog(SubCatalog $subcatalog): RedirectResponse
     {
+        $subcatalog->load('services');
+
+        // Services linked only to this subcatalog would be left without a home
+        $onlyHere = $subcatalog->services->filter(function (Service $service) use ($subcatalog) {
+            return $service->subCatalogs()->where('sub_catalogs.id', '!=', $subcatalog->id)->doesntExist();
+        });
+
+        if ($onlyHere->isNotEmpty()) {
+            return redirect()
+                ->route('admin.subcatalogs')
+                ->with('error', 'Нельзя удалить подкаталог: есть услуги, привязанные только к нему (' . $onlyHere->pluck('name')->take(5)->implode(', ') . '). Сначала перенесите или удалите эти услуги.');
+        }
+
+        // Reassign primary for services that used this as primary
+        foreach ($subcatalog->services as $service) {
+            $wasPrimary = (bool) ($service->pivot->is_primary ?? false);
+
+            $otherId = $service->subCatalogs()
+                ->where('sub_catalogs.id', '!=', $subcatalog->id)
+                ->value('sub_catalogs.id');
+
+            if ($wasPrimary && $otherId) {
+                $service->subCatalogs()->updateExistingPivot($otherId, ['is_primary' => true]);
+                if (Schema::hasColumn('services', 'sub_catalog_id')) {
+                    $service->forceFill(['sub_catalog_id' => $otherId])->save();
+                }
+            }
+        }
+
+        $subcatalog->services()->detach();
         $subcatalog->delete();
+
         return redirect()->route('admin.subcatalogs')->with('success', 'Подкаталог успешно удален');
     }
 
     // SERVICES CRUD
     public function services(Request $request): View
     {
-        $query = Service::with(['subCatalog.catalog']);
+        $query = Service::with(['subCatalogs.catalog']);
 
         // Поиск
         if ($request->filled('search')) {
@@ -213,14 +245,16 @@ class AdminController extends Controller
             });
         }
 
-        // Фильтр по подкаталогу
+        // Фильтр по подкаталогу (любая привязка)
         if ($request->filled('subcatalog_filter')) {
-            $query->where('sub_catalog_id', $request->subcatalog_filter);
+            $query->whereHas('subCatalogs', function ($q) use ($request) {
+                $q->where('sub_catalogs.id', $request->subcatalog_filter);
+            });
         }
 
-        // Фильтр по каталогу
+        // Фильтр по каталогу (любая привязка)
         if ($request->filled('catalog_filter')) {
-            $query->whereHas('subCatalog', function ($q) use ($request) {
+            $query->whereHas('subCatalogs', function ($q) use ($request) {
                 $q->where('catalog_id', $request->catalog_filter);
             });
         }
@@ -239,49 +273,84 @@ class AdminController extends Controller
         }
 
         $services = $query->paginate(15)->withQueryString();
-        $subCatalogs = SubCatalog::with('catalog')->get();
-        $catalogs = Catalog::all();
+        $subCatalogs = SubCatalog::with('catalog')->orderBy('name')->get();
+        $catalogs = Catalog::orderBy('name')->get();
         return view('admin.services.index', compact('services', 'subCatalogs', 'catalogs'));
     }
 
     public function createService(): View
     {
-        $subCatalogs = SubCatalog::with('catalog')->get();
+        $subCatalogs = SubCatalog::with('catalog')->get()->sortBy(function ($sub) {
+            return ($sub->catalog->name ?? '') . '|' . $sub->name;
+        })->values();
+
         return view('admin.services.create', compact('subCatalogs'));
     }
 
     public function storeService(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sub_catalog_id' => 'required|exists:sub_catalogs,id',
+            'sub_catalog_ids' => 'required|array|min:1',
+            'sub_catalog_ids.*' => 'integer|exists:sub_catalogs,id',
+            'primary_sub_catalog_id' => 'nullable|integer|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
-        Service::create($request->all());
+        $primaryId = (int) ($validated['primary_sub_catalog_id'] ?? $validated['sub_catalog_ids'][0]);
+        if (!in_array($primaryId, array_map('intval', $validated['sub_catalog_ids']), true)) {
+            $primaryId = (int) $validated['sub_catalog_ids'][0];
+        }
+
+        $service = Service::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'is_active' => $request->boolean('is_active'),
+        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $primaryId] : []));
+
+        $service->syncSubCatalogs($validated['sub_catalog_ids'], $primaryId);
 
         return redirect()->route('admin.services')->with('success', 'Услуга успешно создана');
     }
 
     public function editService(Service $service): View
     {
-        $subCatalogs = SubCatalog::with('catalog')->get();
+        $service->load('subCatalogs');
+        $subCatalogs = SubCatalog::with('catalog')->get()->sortBy(function ($sub) {
+            return ($sub->catalog->name ?? '') . '|' . $sub->name;
+        })->values();
+
         return view('admin.services.edit', compact('service', 'subCatalogs'));
     }
 
     public function updateService(Request $request, Service $service): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sub_catalog_id' => 'required|exists:sub_catalogs,id',
+            'sub_catalog_ids' => 'required|array|min:1',
+            'sub_catalog_ids.*' => 'integer|exists:sub_catalogs,id',
+            'primary_sub_catalog_id' => 'nullable|integer|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
-        $service->update($request->all());
+        $primaryId = (int) ($validated['primary_sub_catalog_id'] ?? $validated['sub_catalog_ids'][0]);
+        if (!in_array($primaryId, array_map('intval', $validated['sub_catalog_ids']), true)) {
+            $primaryId = (int) $validated['sub_catalog_ids'][0];
+        }
+
+        $service->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'price' => $validated['price'],
+            'is_active' => $request->boolean('is_active'),
+        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $primaryId] : []));
+
+        $service->syncSubCatalogs($validated['sub_catalog_ids'], $primaryId);
 
         return redirect()->route('admin.services')->with('success', 'Услуга успешно обновлена');
     }
@@ -433,11 +502,11 @@ class AdminController extends Controller
         // Загружаем каталоги с подкаталогами и активными услугами
         $catalogs = Catalog::with([
             'subCatalogs.services' => function ($query) {
-                $query->where('is_active', true);
+                $query->where('services.is_active', true);
             }
         ])
             ->whereHas('subCatalogs.services', function ($query) {
-                $query->where('is_active', true);
+                $query->where('services.is_active', true);
             })
             ->get();
 
@@ -447,7 +516,7 @@ class AdminController extends Controller
                 'subCatalogs',
                 $catalog->subCatalogs->filter(function ($subCatalog) {
                     return $subCatalog->services->count() > 0;
-                })
+                })->values()
             );
         });
 
@@ -503,7 +572,7 @@ class AdminController extends Controller
         }
 
         $schedule = Schedule::create($scheduleData);
-        $schedule->services()->attach($request->services);
+        $schedule->services()->attach(array_values(array_unique($request->services)));
 
         // Сохраняем конкретные даты, если они указаны
         if ($request->filled('schedule_dates')) {
@@ -532,11 +601,11 @@ class AdminController extends Controller
         // Загружаем каталоги с подкаталогами и активными услугами
         $catalogs = Catalog::with([
             'subCatalogs.services' => function ($query) {
-                $query->where('is_active', true);
+                $query->where('services.is_active', true);
             }
         ])
             ->whereHas('subCatalogs.services', function ($query) {
-                $query->where('is_active', true);
+                $query->where('services.is_active', true);
             })
             ->get();
 
@@ -546,7 +615,7 @@ class AdminController extends Controller
                 'subCatalogs',
                 $catalog->subCatalogs->filter(function ($subCatalog) {
                     return $subCatalog->services->count() > 0;
-                })
+                })->values()
             );
         });
 
@@ -604,7 +673,7 @@ class AdminController extends Controller
         }
 
         $schedule->update($scheduleData);
-        $schedule->services()->sync($request->services);
+        $schedule->services()->sync(array_values(array_unique($request->services)));
 
         // Обновляем конкретные даты
         if ($request->filled('schedule_dates')) {
@@ -757,7 +826,7 @@ class AdminController extends Controller
                     ->get();
                 break;
             case 'services':
-                $reportData = Service::with('subCatalog')
+                $reportData = Service::with(['subCatalogs.catalog'])
                     ->withCount(['appointments' => function ($query) use ($request) {
                         $query->whereBetween('appointment_date', [$request->date_from, $request->date_to]);
                     }])
@@ -852,7 +921,7 @@ class AdminController extends Controller
     public function getServicesTreeData()
     {
         $catalogs = Catalog::with(['subCatalogs.services' => function ($query) {
-            $query->where('is_active', true);
+            $query->where('services.is_active', true);
         }])->get();
 
         return response()->json($catalogs);

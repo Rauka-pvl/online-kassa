@@ -41,7 +41,7 @@
                                 </div>
                                 <h3 class="subcatalog-title">{{ $subCatalog->name }}</h3>
                                 @php
-                                    $servicesCount = $subCatalog->services()->where('is_active', true)->count();
+                                    $servicesCount = $subCatalog->services()->where('services.is_active', true)->count();
                                 @endphp
                                 @if($servicesCount > 0)
                                     <span class="subcatalog-badge">{{ $servicesCount }} {{ $servicesCount == 1 ? 'услуга' : ($servicesCount < 5 ? 'услуги' : 'услуг') }}</span>

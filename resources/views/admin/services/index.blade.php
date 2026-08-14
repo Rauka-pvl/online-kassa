@@ -83,7 +83,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Название</th>
-                        <th>Подкаталог</th>
+                        <th>Подкаталоги</th>
                         <th>Цена</th>
                         <th>Статус</th>
                         <th>Создана</th>
@@ -101,8 +101,23 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-primary">{{ $service->subCatalog->name }}</span>
-                                <br><small class="text-muted">{{ $service->subCatalog->catalog->name }}</small>
+                                @php
+                                    $links = $service->subCatalogs;
+                                    $primaryId = $service->primary_sub_catalog_id;
+                                @endphp
+                                @forelse($links as $link)
+                                    <div class="mb-1">
+                                        <span class="badge {{ (int) $link->id === (int) $primaryId ? 'bg-primary' : 'bg-secondary' }}">
+                                            {{ $link->name }}
+                                        </span>
+                                        <small class="text-muted">{{ optional($link->catalog)->name }}</small>
+                                        @if((int) $link->id === (int) $primaryId)
+                                            <small class="text-primary">(основной)</small>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <span class="text-muted">—</span>
+                                @endforelse
                             </td>
                             <td>
                                 <strong class="text-success">{{ $service->formatted_price }}</strong>

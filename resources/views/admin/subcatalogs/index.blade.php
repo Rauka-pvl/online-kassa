@@ -99,7 +99,7 @@
                                     </a>
                                     <form action="{{ route('admin.subcatalogs.destroy', $subCatalog) }}"
                                           method="POST" class="d-inline"
-                                          onsubmit="return confirm('Вы уверены, что хотите удалить этот подкаталог? Все связанные услуги также будут удалены.')">
+                                          onsubmit="return confirm('Удалить подкаталог? Услуги, привязанные только к нему, нужно сначала перенести или удалить.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">

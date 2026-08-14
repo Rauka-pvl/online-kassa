@@ -61,6 +61,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
 
     // // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments');
+    Route::get('/appointments/print', [AppointmentController::class, 'printByDate'])->name('appointments.print');
     Route::post('/appointment/create/{schedule}', [AppointmentController::class, 'store'])->name('appointments.store');
     Route::post('/appointment/complete/{appointment}', [AppointmentController::class, 'completeAppointment'])->name('appointments.complete');
     // Route::get('/appointments/{appointment}/edit', [AdminController::class, 'editAppointment'])->name('appointments.edit');

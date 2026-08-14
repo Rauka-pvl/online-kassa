@@ -241,15 +241,16 @@
                                                         <div class="service-item">
                                                             <div class="form-check">
                                                                 <input class="form-check-input service-checkbox @error('services') is-invalid @enderror"
-                                                                       type="checkbox" 
-                                                                       id="service_{{ $service->id }}"
-                                                                       name="services[]" 
+                                                                       type="checkbox"
+                                                                       id="service_{{ $subCatalog->id }}_{{ $service->id }}"
+                                                                       name="services[]"
                                                                        value="{{ $service->id }}"
                                                                        data-subcatalog="{{ $subCatalog->id }}"
                                                                        data-catalog="{{ $catalog->id }}"
+                                                                       data-service="{{ $service->id }}"
                                                                        {{ in_array($service->id, $selectedServices) ? 'checked' : '' }}
-                                                                       onchange="updateSubCatalogCheckbox({{ $subCatalog->id }}, {{ $catalog->id }})">
-                                                                <label class="form-check-label" for="service_{{ $service->id }}">
+                                                                       onchange="updateSubCatalogCheckbox({{ $subCatalog->id }}, {{ $catalog->id }}); syncServiceDuplicates(this)">
+                                                                <label class="form-check-label" for="service_{{ $subCatalog->id }}_{{ $service->id }}">
                                                                     <span class="service-name">{{ $service->name }}</span>
                                                                     <span class="service-info">
                                                                         {{ $service->formatted_price }}
@@ -408,6 +409,19 @@ function updateSubCatalogCheckbox(subCatalogId, catalogId) {
     // Обновляем состояние чекбокса каталога
     updateCatalogCheckbox(catalogId);
     updateCounts(catalogId);
+}
+
+function syncServiceDuplicates(sourceCheckbox) {
+    const serviceId = sourceCheckbox.getAttribute('data-service') || sourceCheckbox.value;
+    document.querySelectorAll(`.service-checkbox[data-service="${serviceId}"]`).forEach(function (cb) {
+        if (cb === sourceCheckbox) return;
+        cb.checked = sourceCheckbox.checked;
+        const subId = cb.getAttribute('data-subcatalog');
+        const catId = cb.getAttribute('data-catalog');
+        if (subId && catId) {
+            updateSubCatalogCheckbox(subId, catId);
+        }
+    });
 }
 
 function updateCatalogCheckbox(catalogId) {
