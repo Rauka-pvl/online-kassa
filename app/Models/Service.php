@@ -31,12 +31,11 @@ class Service extends Model
     public function subCatalogs(): BelongsToMany
     {
         return $this->belongsToMany(SubCatalog::class, 'service_sub_catalog')
-            ->withPivot('is_primary')
             ->withTimestamps();
     }
 
     /**
-     * Primary subcatalog accessor (breadcrumbs / search default).
+     * First linked subcatalog (breadcrumbs / search fallback).
      * Eager-load `subCatalogs.catalog` instead of `subCatalog`.
      */
     public function getSubCatalogAttribute(): ?SubCatalog
@@ -45,11 +44,7 @@ class Service extends Model
             ? $this->subCatalogs
             : $this->subCatalogs()->with('catalog')->get();
 
-        $primary = $links->first(function (SubCatalog $sub) {
-            return (bool) ($sub->pivot->is_primary ?? false);
-        });
-
-        return $primary ?? $links->first();
+        return $links->first();
     }
 
     public function getSubCatalogIdAttribute($value): ?int
@@ -59,11 +54,6 @@ class Service extends Model
         }
 
         return $this->subCatalog?->id;
-    }
-
-    public function getPrimarySubCatalogIdAttribute(): ?int
-    {
-        return $this->sub_catalog_id;
     }
 
     public function schedules(): BelongsToMany
@@ -87,12 +77,11 @@ class Service extends Model
     }
 
     /**
-     * Sync pivot bindings and mark one primary.
+     * Sync pivot bindings.
      *
      * @param  array<int, int|string>  $subCatalogIds
-     * @param  int|string|null  $primarySubCatalogId
      */
-    public function syncSubCatalogs(array $subCatalogIds, int|string|null $primarySubCatalogId = null): void
+    public function syncSubCatalogs(array $subCatalogIds): void
     {
         $ids = collect($subCatalogIds)
             ->map(fn ($id) => (int) $id)
@@ -104,24 +93,10 @@ class Service extends Model
             throw new \InvalidArgumentException('Service must be linked to at least one subcatalog.');
         }
 
-        $primary = $primarySubCatalogId !== null
-            ? (int) $primarySubCatalogId
-            : $ids->first();
-
-        if (!$ids->contains($primary)) {
-            $ids->push($primary);
-            $ids = $ids->unique()->values();
-        }
-
-        $sync = [];
-        foreach ($ids as $id) {
-            $sync[$id] = ['is_primary' => $id === $primary];
-        }
-
-        $this->subCatalogs()->sync($sync);
+        $this->subCatalogs()->sync($ids->all());
 
         if (Schema::hasColumn($this->getTable(), 'sub_catalog_id')) {
-            $this->forceFill(['sub_catalog_id' => $primary])->save();
+            $this->forceFill(['sub_catalog_id' => $ids->first()])->save();
         }
     }
 

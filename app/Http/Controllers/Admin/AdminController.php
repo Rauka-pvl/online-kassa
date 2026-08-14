@@ -209,22 +209,6 @@ class AdminController extends Controller
                 ->with('error', 'Нельзя удалить подкаталог: есть услуги, привязанные только к нему (' . $onlyHere->pluck('name')->take(5)->implode(', ') . '). Сначала перенесите или удалите эти услуги.');
         }
 
-        // Reassign primary for services that used this as primary
-        foreach ($subcatalog->services as $service) {
-            $wasPrimary = (bool) ($service->pivot->is_primary ?? false);
-
-            $otherId = $service->subCatalogs()
-                ->where('sub_catalogs.id', '!=', $subcatalog->id)
-                ->value('sub_catalogs.id');
-
-            if ($wasPrimary && $otherId) {
-                $service->subCatalogs()->updateExistingPivot($otherId, ['is_primary' => true]);
-                if (Schema::hasColumn('services', 'sub_catalog_id')) {
-                    $service->forceFill(['sub_catalog_id' => $otherId])->save();
-                }
-            }
-        }
-
         $subcatalog->services()->detach();
         $subcatalog->delete();
 
@@ -293,25 +277,21 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'sub_catalog_ids' => 'required|array|min:1',
             'sub_catalog_ids.*' => 'integer|exists:sub_catalogs,id',
-            'primary_sub_catalog_id' => 'nullable|integer|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
-        $primaryId = (int) ($validated['primary_sub_catalog_id'] ?? $validated['sub_catalog_ids'][0]);
-        if (!in_array($primaryId, array_map('intval', $validated['sub_catalog_ids']), true)) {
-            $primaryId = (int) $validated['sub_catalog_ids'][0];
-        }
+        $firstSubCatalogId = (int) $validated['sub_catalog_ids'][0];
 
         $service = Service::create([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
             'is_active' => $request->boolean('is_active'),
-        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $primaryId] : []));
+        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $firstSubCatalogId] : []));
 
-        $service->syncSubCatalogs($validated['sub_catalog_ids'], $primaryId);
+        $service->syncSubCatalogs($validated['sub_catalog_ids']);
 
         return redirect()->route('admin.services')->with('success', 'Услуга успешно создана');
     }
@@ -332,25 +312,21 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'sub_catalog_ids' => 'required|array|min:1',
             'sub_catalog_ids.*' => 'integer|exists:sub_catalogs,id',
-            'primary_sub_catalog_id' => 'nullable|integer|exists:sub_catalogs,id',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'is_active' => 'boolean'
         ]);
 
-        $primaryId = (int) ($validated['primary_sub_catalog_id'] ?? $validated['sub_catalog_ids'][0]);
-        if (!in_array($primaryId, array_map('intval', $validated['sub_catalog_ids']), true)) {
-            $primaryId = (int) $validated['sub_catalog_ids'][0];
-        }
+        $firstSubCatalogId = (int) $validated['sub_catalog_ids'][0];
 
         $service->update([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
             'is_active' => $request->boolean('is_active'),
-        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $primaryId] : []));
+        ] + (Schema::hasColumn('services', 'sub_catalog_id') ? ['sub_catalog_id' => $firstSubCatalogId] : []));
 
-        $service->syncSubCatalogs($validated['sub_catalog_ids'], $primaryId);
+        $service->syncSubCatalogs($validated['sub_catalog_ids']);
 
         return redirect()->route('admin.services')->with('success', 'Услуга успешно обновлена');
     }

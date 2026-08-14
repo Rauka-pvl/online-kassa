@@ -101,19 +101,10 @@
                                 @endif
                             </td>
                             <td>
-                                @php
-                                    $links = $service->subCatalogs;
-                                    $primaryId = $service->primary_sub_catalog_id;
-                                @endphp
-                                @forelse($links as $link)
+                                @forelse($service->subCatalogs as $link)
                                     <div class="mb-1">
-                                        <span class="badge {{ (int) $link->id === (int) $primaryId ? 'bg-primary' : 'bg-secondary' }}">
-                                            {{ $link->name }}
-                                        </span>
+                                        <span class="badge bg-primary">{{ $link->name }}</span>
                                         <small class="text-muted">{{ optional($link->catalog)->name }}</small>
-                                        @if((int) $link->id === (int) $primaryId)
-                                            <small class="text-primary">(основной)</small>
-                                        @endif
                                     </div>
                                 @empty
                                     <span class="text-muted">—</span>

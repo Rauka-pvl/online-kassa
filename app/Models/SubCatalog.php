@@ -27,7 +27,6 @@ class SubCatalog extends Model
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'service_sub_catalog')
-            ->withPivot('is_primary')
             ->withTimestamps();
     }
 }
