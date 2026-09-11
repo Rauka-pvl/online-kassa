@@ -295,6 +295,7 @@ class Schedule extends Model
     {
         return Appointment::where('schedule_id', $this->id)
             ->whereDate('appointment_date', $date)
+            ->where('status', '!=', 'cancelled')
             ->with(['service'])
             ->orderBy('appointment_time')
             ->get();

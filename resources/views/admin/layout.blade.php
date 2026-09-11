@@ -54,6 +54,48 @@
         .stats-card.warning {
             border-left-color: #ffc107;
         }
+        .staff-toast-container {
+            position: fixed;
+            top: 72px;
+            right: 16px;
+            z-index: 1080;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+        }
+        .staff-toast {
+            background: #fff;
+            border-left: 4px solid #0d6efd;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            border-radius: 8px;
+            padding: 12px 14px;
+            cursor: pointer;
+            animation: staffToastIn .2s ease;
+        }
+        .staff-toast.is-cancelled {
+            border-left-color: #dc3545;
+        }
+        .staff-toast-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .staff-toast-body {
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        @keyframes staffToastIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: none; }
+        }
+        .appointment-highlight {
+            animation: highlightPulse 1.6s ease 2;
+            background-color: #fff3cd !important;
+        }
+        @keyframes highlightPulse {
+            0%, 100% { background-color: #fff; }
+            50% { background-color: #fff3cd; }
+        }
     </style>
 </head>
 <body>
@@ -71,6 +113,21 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" id="staffNotifToggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Уведомления
+                                <span id="staffNotifBadge" class="badge bg-danger rounded-pill d-none">0</span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end p-0" id="staffNotifMenu" style="min-width: 320px;">
+                                <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                                    <strong>Уведомления</strong>
+                                    <button type="button" class="btn btn-link btn-sm p-0" id="staffNotifReadAll">Прочитать все</button>
+                                </div>
+                                <div id="staffNotifList">
+                                    <div class="dropdown-item-text text-muted">Нет непрочитанных</div>
+                                </div>
+                            </div>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url('/') }}" target="_blank">
                                 Перейти на сайт
@@ -184,6 +241,127 @@
             </div>
         </div>
     </div>
+    <div id="staffToastContainer" class="staff-toast-container" aria-live="polite"></div>
+    <script>
+        (function () {
+            const pollUrl = @json(route('admin.notifications.poll'));
+            const readAllUrl = @json(route('admin.notifications.read-all'));
+            const readUrlTemplate = @json(url('/admin/notifications/__ID__/read'));
+            const appointmentsUrl = @json(route('admin.appointments'));
+            const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const storageKey = 'staff_notif_last_id';
+            const badge = document.getElementById('staffNotifBadge');
+            const list = document.getElementById('staffNotifList');
+            const toasts = document.getElementById('staffToastContainer');
+            let lastId = parseInt(localStorage.getItem(storageKey) || '0', 10);
+            let initialized = false;
+
+            function appointmentLink(item) {
+                const params = new URLSearchParams();
+                if (item.appointment_id) params.set('highlight', item.appointment_id);
+                if (item.appointment_date) params.set('date', item.appointment_date);
+                return appointmentsUrl + '?' + params.toString();
+            }
+
+            function markRead(id) {
+                return fetch(readUrlTemplate.replace('__ID__', id), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+
+            function renderUnread(items, count) {
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+
+                if (!items.length) {
+                    list.innerHTML = '<div class="dropdown-item-text text-muted">Нет непрочитанных</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(function (item) {
+                    return '<a class="dropdown-item py-2" href="' + appointmentLink(item) + '" data-notif-id="' + item.id + '">' +
+                        '<div class="fw-semibold">' + item.title + '</div>' +
+                        '<div class="small text-muted">' + item.body + '</div>' +
+                        '</a>';
+                }).join('');
+            }
+
+            function showToast(item) {
+                const el = document.createElement('div');
+                el.className = 'staff-toast' + (item.type === 'booking_cancelled' ? ' is-cancelled' : '');
+                el.innerHTML = '<div class="staff-toast-title">' + item.title + '</div>' +
+                    '<div class="staff-toast-body">' + item.body + '</div>';
+                el.addEventListener('click', function () {
+                    markRead(item.id).finally(function () {
+                        window.location.href = appointmentLink(item);
+                    });
+                });
+                toasts.appendChild(el);
+                setTimeout(function () {
+                    el.remove();
+                }, 5000);
+            }
+
+            async function poll() {
+                try {
+                    const response = await fetch(pollUrl + '?after_id=' + lastId, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    renderUnread(data.unread || [], data.unread_count || 0);
+
+                    if (!initialized) {
+                        lastId = data.latest_id || lastId;
+                        localStorage.setItem(storageKey, String(lastId));
+                        initialized = true;
+                        return;
+                    }
+
+                    if ((data.latest_id || 0) < lastId) {
+                        lastId = data.latest_id || 0;
+                    }
+
+                    (data.notifications || []).forEach(function (item) {
+                        showToast(item);
+                        lastId = Math.max(lastId, item.id);
+                    });
+                    localStorage.setItem(storageKey, String(lastId));
+                } catch (e) {}
+            }
+
+            list.addEventListener('click', function (e) {
+                const link = e.target.closest('[data-notif-id]');
+                if (link) {
+                    markRead(link.getAttribute('data-notif-id'));
+                }
+            });
+
+            document.getElementById('staffNotifReadAll').addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                fetch(readAllUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json'
+                    }
+                }).then(function () { poll(); });
+            });
+
+            poll();
+            setInterval(poll, 8000);
+        })();
+    </script>
     @stack('scripts')
 </body>
 </html>

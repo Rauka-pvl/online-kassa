@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Schedule;
 use App\Models\Service;
-use Illuminate\Http\Request;
+use App\Services\StaffNotifier;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PublicBookingController extends Controller
 {
@@ -23,48 +26,122 @@ class PublicBookingController extends Controller
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
-        $schedule = Schedule::with('appointments')->findOrFail($validated['schedule_id']);
 
-        if ($schedule->hasUnlimitedAppointments()) {
-            if (empty($validated['time'])) {
-                return back()->withErrors(['time' => 'Укажите время приёма'])->withInput();
-            }
-        } else {
-            if (empty($validated['time'])) {
-                return back()->withErrors(['time' => 'Выберите время приёма'])->withInput();
-            }
+        $appointment = DB::transaction(function () use ($validated, $service) {
+            $schedule = Schedule::lockForUpdate()->findOrFail($validated['schedule_id']);
 
-            // Проверка занятости слота (переиспользуем метод, если есть)
-            if (method_exists($schedule, 'isTimeSlotAvailable')) {
+            Appointment::where('schedule_id', $schedule->id)
+                ->whereDate('appointment_date', $validated['date'])
+                ->where('status', '!=', 'cancelled')
+                ->lockForUpdate()
+                ->get();
+
+            if ($schedule->hasUnlimitedAppointments()) {
+                if (empty($validated['time'])) {
+                    throw ValidationException::withMessages([
+                        'time' => 'Укажите время приёма',
+                    ]);
+                }
+            } else {
+                if (empty($validated['time'])) {
+                    throw ValidationException::withMessages([
+                        'time' => 'Выберите время приёма',
+                    ]);
+                }
+
                 if (!$schedule->isTimeSlotAvailable($validated['date'], $validated['time'])) {
-                    return back()->withErrors(['time' => 'Слот уже занят, выберите другое время'])->withInput();
+                    throw ValidationException::withMessages([
+                        'time' => 'Слот уже занят, выберите другое время',
+                    ]);
                 }
             }
-        }
 
-        $appointment = Appointment::create([
-            'schedule_id' => $schedule->id,
-            'service_id' => $service->id,
-            'client_name' => $validated['client_name'],
-            'patient_iin' => $validated['patient_iin'] ?? null,
-            'client_phone' => $validated['client_phone'],
-            'appointment_date' => $validated['date'],
-            'appointment_time' => $validated['time'] ?? null,
-            'appointment_end_time' => isset($validated['time']) && $validated['time'] && $schedule->appointment_interval
-                ? Carbon::parse($validated['time'])->addMinutes($schedule->appointment_interval)->format('H:i')
-                : null,
-            'total_price' => $service->price ?? 0,
-            'status' => 'pending',
-        ]);
+            $appointment = Appointment::create([
+                'schedule_id' => $schedule->id,
+                'service_id' => $service->id,
+                'client_name' => $validated['client_name'],
+                'patient_iin' => $validated['patient_iin'] ?? null,
+                'client_phone' => $validated['client_phone'],
+                'appointment_date' => $validated['date'],
+                'appointment_time' => $validated['time'] ?? null,
+                'appointment_end_time' => isset($validated['time']) && $validated['time'] && $schedule->appointment_interval
+                    ? Carbon::parse($validated['time'])->addMinutes($schedule->appointment_interval)->format('H:i')
+                    : null,
+                'total_price' => $service->price ?? 0,
+                'status' => 'pending',
+            ]);
 
-        return redirect()->route('booking.confirm')->with('appointment_id', $appointment->id);
+            StaffNotifier::notify(StaffNotifier::TYPE_CREATED, $appointment);
+
+            return $appointment;
+        });
+
+        return redirect()
+            ->route('booking.show', $appointment->manage_token)
+            ->with('just_created', true);
     }
 
-    public function confirm(Request $request)
+    public function show(string $token)
     {
-        $appointmentId = session('appointment_id');
-        $appointment = $appointmentId ? Appointment::with(['schedule.user', 'service'])->find($appointmentId) : null;
-        return view('client.confirm', compact('appointment'));
+        $appointment = Appointment::with(['schedule.user', 'service'])
+            ->where('manage_token', $token)
+            ->firstOrFail();
+
+        return view('client.manage', compact('appointment'));
+    }
+
+    public function cancel(Request $request, string $token)
+    {
+        $appointment = Appointment::with(['schedule.user', 'service'])
+            ->where('manage_token', $token)
+            ->firstOrFail();
+
+        if (!$appointment->canBeCancelledByPatient()) {
+            $message = $appointment->status === 'cancelled'
+                ? 'Эта запись уже отменена.'
+                : 'Отменить запись уже нельзя: приём начался или запись завершена.';
+
+            return redirect()
+                ->route('booking.show', $appointment->manage_token)
+                ->with('error', $message);
+        }
+
+        $appointment->cancelByPatient();
+        StaffNotifier::notify(StaffNotifier::TYPE_CANCELLED, $appointment);
+
+        return redirect()
+            ->route('booking.show', $appointment->manage_token)
+            ->with('success', 'Запись отменена. Слот снова свободен.');
+    }
+
+    public function findForm()
+    {
+        return view('client.find');
+    }
+
+    public function lookup(Request $request)
+    {
+        $validated = $request->validate([
+            'client_phone' => 'required|string|max:20',
+            'code' => 'required|string|max:32',
+        ]);
+
+        $id = (int) preg_replace('/\D+/', '', $validated['code']);
+        $phoneDigits = Appointment::normalizePhone($validated['client_phone']);
+
+        $appointment = $id ? Appointment::find($id) : null;
+
+        if (
+            !$appointment
+            || Appointment::normalizePhone($appointment->client_phone) !== $phoneDigits
+            || !$appointment->manage_token
+        ) {
+            return back()
+                ->withErrors(['code' => 'Запись не найдена. Проверьте телефон и код ASK-…'])
+                ->withInput();
+        }
+
+        return redirect()->route('booking.show', $appointment->manage_token);
     }
 
     public function slots(Schedule $schedule, Request $request)
@@ -75,7 +152,6 @@ class PublicBookingController extends Controller
 
         $date = Carbon::parse($request->query('date'))->format('Y-m-d');
 
-        // Не позволяем прошедшие даты
         if (Carbon::parse($date)->lt(Carbon::today())) {
             return response()->json([
                 'unlimited' => $schedule->hasUnlimitedAppointments(),
@@ -96,7 +172,6 @@ class PublicBookingController extends Controller
 
         $workingHours = $schedule->getWorkingHoursForDate($date);
 
-        // Дополнительная проверка: если нет рабочих часов, врач не работает
         if (!$workingHours) {
             return response()->json([
                 'unlimited' => $schedule->hasUnlimitedAppointments(),
@@ -117,7 +192,7 @@ class PublicBookingController extends Controller
 
         $daySchedule = $schedule->getDaySchedule($date);
         $freeSlots = collect($daySchedule)
-            ->filter(fn($slot) => $slot['is_free'])
+            ->filter(fn ($slot) => $slot['is_free'])
             ->pluck('time')
             ->values();
 

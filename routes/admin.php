@@ -2,13 +2,17 @@
 // routes/admin.php
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AppointmentController;
-use App\Models\Appointment;
+use App\Http\Controllers\Admin\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(function () {
 
     // Dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 
     // Catalogs
     Route::get('/catalogs', [AdminController::class, 'catalogs'])->name('catalogs');

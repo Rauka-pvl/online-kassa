@@ -970,6 +970,192 @@ a {
     opacity: 0.95;
 }
 
+.service-info-pay-hint {
+    margin-top: 0.35rem;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.booking-steps {
+    list-style: none;
+    display: flex;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+}
+
+.booking-step-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    background: var(--bg-primary);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 2px solid var(--border-color);
+}
+
+.booking-step-tab.is-active {
+    border-color: var(--primary-color);
+    color: var(--primary-dark);
+    background: #f4f9ff;
+}
+
+.booking-step-tab.is-done {
+    border-color: #10B981;
+    color: #059669;
+}
+
+.booking-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    font-size: 0.85rem;
+}
+
+.booking-step-tab.is-active .booking-step-num {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.booking-step {
+    display: none;
+}
+
+.booking-step.is-active {
+    display: block;
+}
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.6rem;
+}
+
+.slot-chip {
+    border: 2px solid var(--border-color);
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.7rem 0.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.slot-chip:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-dark);
+}
+
+.slot-chip.is-selected {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.booking-clinic-note {
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.booking-nav {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-primary);
+    padding: 1rem 0 0.25rem;
+    z-index: 5;
+}
+
+.ticket-card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 1.5rem;
+}
+
+.ticket-code {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--primary-dark);
+}
+
+.ticket-status {
+    display: inline-block;
+    margin: 0.5rem 0 1.25rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.status-pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-confirmed {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-cancelled {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-completed {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.confirm-success.is-cancelled .success-icon {
+    background: linear-gradient(135deg, #F87171, #EF4444);
+}
+
+.alert-success-banner {
+    background: #ECFDF5;
+    border: 2px solid #A7F3D0;
+    color: #065F46;
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.btn-danger-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 14px 28px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1rem;
+    background: #fff;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+    cursor: pointer;
+}
+
+.btn-danger-large:hover {
+    background: var(--accent-color);
+    color: #fff;
+}
+
 .booking-form-wrapper {
     background: var(--bg-primary);
     border-radius: var(--radius-lg);
@@ -1348,6 +1534,10 @@ a {
     gap: 1rem;
     justify-content: center;
     flex-wrap: wrap;
+}
+
+.confirm-actions form {
+    margin: 0;
 }
 
 .confirm-error {
@@ -1787,8 +1977,19 @@ a {
         grid-template-columns: 1fr;
     }
 
-    .form-actions {
+    .form-actions,
+    .booking-nav {
         flex-direction: column;
+    }
+
+    .booking-nav .btn-primary-large,
+    .booking-nav .btn-secondary-large {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .booking-step-tab span:last-child {
+        display: none;
     }
 
     .btn-primary-large,

@@ -61,10 +61,8 @@
                         </option>
                         <option value="confirmed" {{ request('status_filter') == 'confirmed' ? 'selected' : '' }}>
                             Подтверждено</option>
-                        {{-- <option value="completed" {{ request('status_filter') == 'completed' ? 'selected' : '' }}>Завершено
-                        </option> --}}
-                        {{-- <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено
-                        </option> --}}
+                        <option value="cancelled" {{ request('status_filter') == 'cancelled' ? 'selected' : '' }}>Отменено
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -122,6 +120,7 @@
                                 'date',
                                 'sort_by',
                                 'sort_order',
+                                'highlight',
                             ]))
                             <a href="{{ route('admin.appointments') }}"
                                 class="btn btn-outline-secondary btn-sm">Сбросить</a>
@@ -171,7 +170,7 @@
                         </thead>
                         <tbody>
                             @forelse($appointments as $appointment)
-                                <tr>
+                                <tr id="appointment-{{ $appointment->id }}" class="{{ (string) request('highlight') === (string) $appointment->id ? 'appointment-highlight' : '' }}">
                                     <td>{{ $appointment->id }}</td>
                                     <td>
                                         <div>{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d.m.Y') }}
@@ -517,8 +516,7 @@
                             <select class="form-control" name="status" id="status_appointment">
                                 <option id="pending_status" value="pending">Ожидает</option>
                                 <option id="confirmed_status" value="confirmed">Подтверждено</option>
-                                {{-- <option id="canceled_status" value="canceled">Отменено</option>
-                                <option id="completed_status" value="completed">Завершено</option> --}}
+                                <option id="cancelled_status" value="cancelled">Отменено</option>
                             </select>
                         </div>
 

@@ -61,6 +61,11 @@ class User extends Authenticatable
         return $this->hasMany(Appointment::class, 'registrar_id');
     }
 
+    public function staffNotifications()
+    {
+        return $this->hasMany(StaffNotification::class);
+    }
+
     public function isDoctor(): bool
     {
         return $this->role == 4;

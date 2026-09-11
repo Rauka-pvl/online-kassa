@@ -16,9 +16,11 @@ Route::get('/sub-catalog/{id}', [ClientController::class, 'subCatalog'])->name('
 Route::get('/services/{id}', [ClientController::class, 'services'])->name('services');
 Route::get('/service/{service}/booking', [ClientController::class, 'booking'])->name('service.booking');
 
-// Public booking + confirmation (payment mock)
 Route::post('/booking', [PublicBookingController::class, 'store'])->name('booking.store');
-Route::get('/booking/confirm', [PublicBookingController::class, 'confirm'])->name('booking.confirm');
+Route::get('/my-appointment', [PublicBookingController::class, 'findForm'])->name('booking.find');
+Route::post('/my-appointment', [PublicBookingController::class, 'lookup'])->name('booking.lookup');
+Route::get('/booking/{token}', [PublicBookingController::class, 'show'])->name('booking.show')->where('token', '[A-Za-z0-9]{32,64}');
+Route::post('/booking/{token}/cancel', [PublicBookingController::class, 'cancel'])->name('booking.cancel')->where('token', '[A-Za-z0-9]{32,64}');
 Route::get('/api/schedules/{schedule}/slots', [PublicBookingController::class, 'slots'])->name('api.schedules.slots');
 
 // Live search API

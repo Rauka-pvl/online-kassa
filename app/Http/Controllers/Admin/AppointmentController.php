@@ -40,16 +40,22 @@ class AppointmentController extends Controller
             ];
         }
 
-        // Если есть поиск по пациенту, показываем список записей
-        if ($request->filled('patient_search')) {
-            $patientSearch = $request->patient_search;
+        // Если есть поиск по пациенту или подсветка конкретной записи — список
+        if ($request->filled('patient_search') || $request->filled('highlight')) {
+            $appointmentsQuery = Appointment::with(['schedule.user', 'service']);
 
-            $appointmentsQuery = Appointment::with(['schedule.user', 'service'])
-                ->where(function ($q) use ($patientSearch) {
+            if ($request->filled('highlight')) {
+                $appointmentsQuery->where('id', $request->highlight);
+            }
+
+            if ($request->filled('patient_search')) {
+                $patientSearch = $request->patient_search;
+                $appointmentsQuery->where(function ($q) use ($patientSearch) {
                     $q->where('client_name', 'like', '%' . $patientSearch . '%')
                         ->orWhere('client_phone', 'like', '%' . $patientSearch . '%')
                         ->orWhere('patient_iin', 'like', '%' . $patientSearch . '%');
                 });
+            }
 
             // Поиск по врачу
             if ($request->filled('doctor_search')) {
@@ -215,7 +221,7 @@ class AppointmentController extends Controller
             'time' => 'nullable|date_format:H:i',
             'service_id' => 'required|exists:services,id',
             'notes' => 'nullable|string|max:1000',
-            'status' => 'nullable|string|in:pending,confirmed,canceled,completed',
+            'status' => 'nullable|string|in:pending,confirmed,cancelled,completed',
         ]);
 
 
@@ -227,6 +233,11 @@ class AppointmentController extends Controller
         $appointment->notes = $validated['notes'] ?? null;
         $appointment->total_price = Service::find($validated['service_id'])->price ?? 0;
         $appointment->status = $validated['status'] ?? $appointment->status;
+
+        if ($appointment->status === 'cancelled' && !$appointment->cancelled_at) {
+            $appointment->cancelled_at = now();
+            $appointment->cancelled_by = 'staff';
+        }
 
         if (Schedule::find($appointment->schedule_id)->hasUnlimitedAppointments()) {
             // Для неограниченных записей время не обязательно
