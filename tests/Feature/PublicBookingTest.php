@@ -151,6 +151,25 @@ class PublicBookingTest extends TestCase
         $this->assertSame('pending', $past->fresh()->status);
     }
 
+    public function test_incomplete_phone_is_rejected(): void
+    {
+        $this->post(route('booking.store'), [
+            'service_id' => $this->service->id,
+            'schedule_id' => $this->schedule->id,
+            'date' => Carbon::today()->format('Y-m-d'),
+            'time' => '09:00',
+            'client_name' => 'Иван Петров',
+            'client_phone' => '+7 (701) 11',
+        ])->assertSessionHasErrors('client_phone');
+
+        $this->assertSame(0, Appointment::count());
+
+        $this->post(route('booking.lookup'), [
+            'client_phone' => '+7 (701)',
+            'code' => 'ASK-1',
+        ])->assertSessionHasErrors('client_phone');
+    }
+
     public function test_lookup_by_phone_and_code(): void
     {
         $this->post(route('booking.store'), [
@@ -168,6 +187,24 @@ class PublicBookingTest extends TestCase
             'client_phone' => '77011112233',
             'code' => $appointment->code,
         ])->assertRedirect(route('booking.show', $appointment->manage_token));
+    }
+
+    public function test_calendar_marks_days_with_free_slots(): void
+    {
+        $month = Carbon::today()->format('Y-m');
+        $today = Carbon::today()->format('Y-m-d');
+
+        $response = $this->getJson(route('api.schedules.days', [
+            'schedule' => $this->schedule,
+            'month' => $month,
+        ]));
+
+        $response->assertOk()->assertJsonPath('unlimited', false);
+
+        $todayInfo = collect($response->json('days'))->firstWhere('date', $today);
+        $this->assertNotNull($todayInfo);
+        $this->assertSame('open', $todayInfo['status']);
+        $this->assertGreaterThan(0, $todayInfo['free']);
     }
 
     private function seedBookingContext(): void

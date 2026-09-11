@@ -1,3 +1,44 @@
+function isCompleteKzPhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
+}
+
+function isMaskedPhoneComplete(mask, input) {
+    if (mask && mask.masked && typeof mask.masked.isComplete === 'boolean') {
+        return mask.masked.isComplete;
+    }
+
+    return isCompleteKzPhone(input ? input.value : '');
+}
+
+function applyKzPhoneMask(input) {
+    if (!window.IMask || !input) return null;
+    const mask = IMask(input, {
+        mask: '+{7} (000) 000-00-00',
+        lazy: false,
+        overwrite: true,
+    });
+    const syncValidity = () => {
+        input.setCustomValidity(mask.masked.isComplete ? '' : 'Введите номер полностью: +7 (XXX) XXX-XX-XX');
+    };
+    mask.on('accept', syncValidity);
+    syncValidity();
+    return mask;
+}
+
+function applyIinMask(input) {
+    if (!window.IMask || !input) return null;
+    return IMask(input, {
+        mask: '000000000000',
+        lazy: true,
+    });
+}
+
+window.isCompleteKzPhone = isCompleteKzPhone;
+window.isMaskedPhoneComplete = isMaskedPhoneComplete;
+window.applyKzPhoneMask = applyKzPhoneMask;
+window.applyIinMask = applyIinMask;
+
 function escapeHtml(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')

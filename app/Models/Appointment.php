@@ -72,6 +72,13 @@ class Appointment extends Model
         return preg_replace('/\D+/', '', $phone) ?? '';
     }
 
+    public static function isCompletePhone(?string $phone): bool
+    {
+        $digits = static::normalizePhone((string) $phone);
+
+        return strlen($digits) === 11 && str_starts_with($digits, '7');
+    }
+
     public function getCodeAttribute(): string
     {
         return 'ASK-' . $this->id;

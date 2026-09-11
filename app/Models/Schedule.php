@@ -358,6 +358,48 @@ class Schedule extends Model
             ->toArray();
     }
 
+    public function availabilityForMonth(string $yearMonth): array
+    {
+        $start = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $today = Carbon::today();
+
+        $this->loadMissing('scheduleDates');
+
+        $days = [];
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+            $key = $date->format('Y-m-d');
+
+            if ($date->lt($today)) {
+                $days[] = ['date' => $key, 'status' => 'past', 'free' => 0, 'total' => 0];
+                continue;
+            }
+
+            if (!$this->isWorkingDate($key) || !$this->getWorkingHoursForDate($key)) {
+                $days[] = ['date' => $key, 'status' => 'closed', 'free' => 0, 'total' => 0];
+                continue;
+            }
+
+            if ($this->hasUnlimitedAppointments()) {
+                $days[] = ['date' => $key, 'status' => 'open', 'free' => null, 'total' => null];
+                continue;
+            }
+
+            $daySchedule = $this->getDaySchedule($key);
+            $total = count($daySchedule);
+            $free = collect($daySchedule)->where('is_free', true)->count();
+
+            $days[] = [
+                'date' => $key,
+                'status' => $free > 0 ? 'open' : 'full',
+                'free' => $free,
+                'total' => $total,
+            ];
+        }
+
+        return $days;
+    }
+
     public function getDayNameInRussian(string $day): string
     {
         $days = [

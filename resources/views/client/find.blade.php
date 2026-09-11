@@ -21,7 +21,9 @@
                     <div class="form-group">
                         <label class="form-label" for="find_phone">Телефон</label>
                         <input type="tel" name="client_phone" id="find_phone" class="form-control-modern"
-                               placeholder="+7 (___) ___-__-__" value="{{ old('client_phone') }}" required>
+                               placeholder="+7 (___) ___-__-__" value="{{ old('client_phone') }}"
+                               inputmode="tel" autocomplete="tel" required>
+                        <div class="form-hint">Введите номер полностью: +7 (XXX) XXX-XX-XX</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="find_code">Код записи</label>
@@ -54,8 +56,16 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const phoneInput = document.getElementById('find_phone');
-            if (window.IMask && phoneInput) {
-                IMask(phoneInput, { mask: '+{7}(000)000-00-00' });
+            const form = phoneInput ? phoneInput.closest('form') : null;
+            const phoneMask = applyKzPhoneMask(phoneInput);
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    if (!isMaskedPhoneComplete(phoneMask, phoneInput)) {
+                        e.preventDefault();
+                        alert('Введите номер полностью: +7 (XXX) XXX-XX-XX');
+                        phoneInput.focus();
+                    }
+                });
             }
         });
     </script>

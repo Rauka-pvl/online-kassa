@@ -21,8 +21,17 @@ class PublicBookingController extends Controller
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'time' => 'nullable|date_format:H:i',
             'client_name' => 'required|string|max:255',
-            'client_phone' => 'required|string|max:20',
-            'patient_iin' => 'nullable|string|max:12',
+            'client_phone' => [
+                'required',
+                'string',
+                'max:20',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (!Appointment::isCompletePhone($value)) {
+                        $fail('Введите номер полностью, например +7 (701) 111-22-33');
+                    }
+                },
+            ],
+            'patient_iin' => 'nullable|regex:/^\d{12}$/',
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
@@ -122,7 +131,16 @@ class PublicBookingController extends Controller
     public function lookup(Request $request)
     {
         $validated = $request->validate([
-            'client_phone' => 'required|string|max:20',
+            'client_phone' => [
+                'required',
+                'string',
+                'max:20',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (!Appointment::isCompletePhone($value)) {
+                        $fail('Введите номер полностью, например +7 (701) 111-22-33');
+                    }
+                },
+            ],
             'code' => 'required|string|max:32',
         ]);
 
@@ -201,6 +219,18 @@ class PublicBookingController extends Controller
             'working' => true,
             'slots' => $freeSlots,
             'working_hours' => $workingHours,
+        ]);
+    }
+
+    public function days(Schedule $schedule, Request $request)
+    {
+        $request->validate([
+            'month' => 'required|date_format:Y-m',
+        ]);
+
+        return response()->json([
+            'unlimited' => $schedule->hasUnlimitedAppointments(),
+            'days' => $schedule->availabilityForMonth($request->query('month')),
         ]);
     }
 }

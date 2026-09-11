@@ -101,9 +101,14 @@
                         </h3>
 
                         <div class="form-group">
-                            <label class="form-label" for="date_input">Дата приёма</label>
-                            <input type="date" name="date" id="date_input" class="form-control-modern"
-                                   value="{{ old('date') }}" required min="{{ date('Y-m-d') }}">
+                            <label class="form-label">Дата приёма</label>
+                            <input type="hidden" name="date" id="date_input" value="{{ old('date') }}">
+                            <div id="booking_calendar" class="booking-calendar" data-days-url-base="{{ url('/api/schedules') }}"></div>
+                            <div class="calendar-legend">
+                                <span><i class="cal-dot is-open"></i> Есть свободное время</span>
+                                <span><i class="cal-dot is-full"></i> Все слоты заняты</span>
+                                <span><i class="cal-dot is-closed"></i> Нет приёма</span>
+                            </div>
                             @error('date')
                                 <div class="form-error">{{ $message }}</div>
                             @enderror
@@ -148,7 +153,9 @@
                             <div class="form-group">
                                 <label class="form-label" for="phone_input">Телефон</label>
                                 <input type="tel" name="client_phone" id="phone_input" class="form-control-modern"
-                                       placeholder="+7 (___) ___-__-__" value="{{ old('client_phone') }}" required>
+                                       placeholder="+7 (___) ___-__-__" value="{{ old('client_phone') }}"
+                                       inputmode="tel" autocomplete="tel" required>
+                                <div class="form-hint">Введите номер полностью: +7 (XXX) XXX-XX-XX</div>
                                 @error('client_phone')
                                     <div class="form-error">{{ $message }}</div>
                                 @enderror
@@ -159,7 +166,8 @@
                                     ИИН <span class="form-label-optional">(необязательно)</span>
                                 </label>
                                 <input type="text" name="patient_iin" id="patient_iin" class="form-control-modern" maxlength="12"
-                                       placeholder="000000000000" value="{{ old('patient_iin') }}">
+                                       placeholder="000000000000" inputmode="numeric" value="{{ old('patient_iin') }}">
+                                <div class="form-hint">Если указываете ИИН — все 12 цифр</div>
                             </div>
                         </div>
 
@@ -227,14 +235,18 @@
             const submitBtn = document.getElementById('submitBookingBtn');
             const backLink = document.getElementById('bookingBackLink');
             const baseUrl = scheduleSelect.dataset.slotsUrlBase;
+            const calendarEl = document.getElementById('booking_calendar');
+            const daysUrlBase = calendarEl ? calendarEl.dataset.daysUrlBase : baseUrl;
             let currentStep = parseInt(form.dataset.startStep || '1', 10);
             let previousTime = timeHidden.value || '';
+            let calendarCursor = new Date();
+            calendarCursor.setDate(1);
+            calendarCursor.setHours(0, 0, 0, 0);
+            let daysByDate = {};
 
-            if (window.IMask && phoneInput) {
-                IMask(phoneInput, {
-                    mask: '+{7}(000)000-00-00'
-                });
-            }
+            const iinInput = document.getElementById('patient_iin');
+            const phoneMask = applyKzPhoneMask(phoneInput);
+            const iinMask = applyIinMask(iinInput);
 
             function showInfoMessage(message) {
                 slotMessage.textContent = message;
@@ -317,6 +329,113 @@
                 } else {
                     showInfoMessage('Укажите удобное время приёма.');
                 }
+            }
+
+            function monthKey(date) {
+                return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+            }
+
+            function formatMonthTitle(date) {
+                return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+            }
+
+            function selectDate(value, reloadSlots) {
+                dateInput.value = value;
+                if (calendarEl) {
+                    calendarEl.querySelectorAll('.cal-day').forEach(function (btn) {
+                        btn.classList.toggle('is-selected', btn.dataset.date === value);
+                    });
+                }
+                if (reloadSlots !== false) {
+                    timeHidden.value = '';
+                    loadSlots();
+                }
+            }
+
+            function renderCalendar() {
+                if (!calendarEl) return;
+
+                if (!scheduleSelect.value) {
+                    calendarEl.innerHTML = '<div class="cal-placeholder">Сначала выберите врача — в календаре появятся дни приёма.</div>';
+                    return;
+                }
+
+                const year = calendarCursor.getFullYear();
+                const month = calendarCursor.getMonth();
+                const first = new Date(year, month, 1);
+                const startWeekday = (first.getDay() + 6) % 7;
+                const lastDate = new Date(year, month + 1, 0).getDate();
+                const todayNow = new Date();
+                const todayKey = todayNow.getFullYear() + '-' + String(todayNow.getMonth() + 1).padStart(2, '0') + '-' + String(todayNow.getDate()).padStart(2, '0');
+                const now = new Date();
+                const canPrev = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth());
+
+                let html = '<div class="cal-head">' +
+                    '<button type="button" class="cal-nav" data-cal="prev"' + (canPrev ? '' : ' disabled') + ' aria-label="Предыдущий месяц">‹</button>' +
+                    '<div class="cal-title">' + formatMonthTitle(calendarCursor) + '</div>' +
+                    '<button type="button" class="cal-nav" data-cal="next" aria-label="Следующий месяц">›</button>' +
+                    '</div>';
+                html += '<div class="cal-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>';
+                html += '<div class="cal-grid">';
+
+                for (let i = 0; i < startWeekday; i++) {
+                    html += '<span></span>';
+                }
+
+                for (let day = 1; day <= lastDate; day++) {
+                    const value = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                    const info = daysByDate[value] || { status: 'closed' };
+                    const classes = ['cal-day', 'is-' + info.status];
+                    if (value === dateInput.value) classes.push('is-selected');
+                    if (value === todayKey) classes.push('is-today');
+                    const title = info.status === 'open'
+                        ? (info.free != null ? 'Свободно: ' + info.free : 'Можно записаться')
+                        : (info.status === 'full' ? 'Все слоты заняты' : (info.status === 'past' ? 'Прошедшая дата' : 'Врач не принимает'));
+                    const disabled = info.status !== 'open' ? ' disabled' : '';
+                    const mark = info.status === 'open' ? '<span class="cal-mark"></span>' : '';
+                    html += '<button type="button" class="' + classes.join(' ') + '" data-date="' + value + '" title="' + title + '"' + disabled + '>' + day + mark + '</button>';
+                }
+
+                html += '</div>';
+                calendarEl.innerHTML = html;
+            }
+
+            async function loadCalendar() {
+                if (!calendarEl) return;
+                if (!scheduleSelect.value) {
+                    daysByDate = {};
+                    renderCalendar();
+                    return;
+                }
+
+                calendarEl.innerHTML = '<div class="cal-placeholder">Загружаем дни приёма…</div>';
+                try {
+                    const response = await fetch(daysUrlBase + '/' + scheduleSelect.value + '/days?month=' + monthKey(calendarCursor));
+                    const data = await response.json();
+                    daysByDate = {};
+                    (data.days || []).forEach(function (day) {
+                        daysByDate[day.date] = day;
+                    });
+                    renderCalendar();
+                } catch (e) {
+                    calendarEl.innerHTML = '<div class="cal-placeholder">Не удалось загрузить календарь. Попробуйте ещё раз.</div>';
+                }
+            }
+
+            if (calendarEl) {
+                calendarEl.addEventListener('click', function (e) {
+                    const nav = e.target.closest('[data-cal]');
+                    if (nav) {
+                        if (nav.disabled) return;
+                        calendarCursor.setMonth(calendarCursor.getMonth() + (nav.dataset.cal === 'next' ? 1 : -1));
+                        loadCalendar();
+                        return;
+                    }
+                    const dayBtn = e.target.closest('.cal-day.is-open');
+                    if (dayBtn) {
+                        selectDate(dayBtn.dataset.date, true);
+                    }
+                });
             }
 
             function formatHours(workingHours) {
@@ -412,11 +531,7 @@
                 slotGrid.innerHTML = '';
                 manualTimeInput.classList.add('d-none');
                 showInfoMessage('Выберите дату, чтобы увидеть доступное время.');
-            });
-
-            dateInput.addEventListener('change', function () {
-                timeHidden.value = '';
-                loadSlots();
+                loadCalendar();
             });
 
             manualTimeInput.addEventListener('change', function () {
@@ -428,6 +543,7 @@
                 if (!canGoNext()) return;
                 if (currentStep === 1) {
                     setStep(2);
+                    loadCalendar();
                     if (dateInput.value) loadSlots();
                     return;
                 }
@@ -453,16 +569,25 @@
                     showErrorMessage('Выберите время приёма.');
                     return false;
                 }
-                if (!nameInput.value.trim() || !phoneInput.value.trim()) {
+                if (!nameInput.value.trim() || !isMaskedPhoneComplete(phoneMask, phoneInput)) {
                     e.preventDefault();
                     setStep(3);
-                    showStepAlert('Укажите ФИО и телефон.');
+                    showStepAlert('Укажите ФИО и полный номер телефона: +7 (XXX) XXX-XX-XX');
+                    phoneInput.focus();
+                    return false;
+                }
+                if (iinInput && iinInput.value.trim() !== '' && String(iinMask ? iinMask.unmaskedValue : iinInput.value).length !== 12) {
+                    e.preventDefault();
+                    setStep(3);
+                    showStepAlert('ИИН должен содержать 12 цифр, либо оставьте поле пустым.');
+                    iinInput.focus();
                     return false;
                 }
                 timeHidden.value = timeValue;
             });
 
             setStep(currentStep);
+            loadCalendar();
             if (scheduleSelect.value && dateInput.value) {
                 loadSlots();
             }

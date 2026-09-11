@@ -1135,6 +1135,141 @@ a {
     color: #fff;
 }
 
+.booking-calendar {
+    background: #fff;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.cal-title {
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.cal-nav {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    color: var(--primary-dark);
+    font-size: 1.1rem;
+}
+
+.cal-nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.cal-weekdays,
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+.cal-weekdays span {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-light);
+    padding-bottom: 4px;
+}
+
+.cal-day {
+    position: relative;
+    min-height: 42px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    cursor: default;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.cal-day.is-open {
+    background: #e8f8f0;
+    color: #0f766e;
+    cursor: pointer;
+}
+
+.cal-day.is-open:hover {
+    background: #cbf2e1;
+}
+
+.cal-day.is-full {
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.cal-day.is-selected {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.cal-day.is-today:not(.is-selected)::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    transform: translateX(-50%);
+}
+
+.cal-day.is-open .cal-mark {
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    margin: 2px auto 0;
+}
+
+.cal-day.is-selected .cal-mark {
+    background: #fff;
+}
+
+.cal-placeholder {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+}
+
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-top: 0.75rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.cal-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.cal-dot.is-open { background: #10b981; }
+.cal-dot.is-full { background: #9ca3af; }
+.cal-dot.is-closed { background: #e5e7eb; border: 1px solid #d1d5db; }
+
 .booking-clinic-note {
     margin-top: 0.5rem;
     color: var(--text-secondary);
@@ -1311,6 +1446,12 @@ a {
 .form-control-modern:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(111, 171, 246, 0.15);
+}
+
+.form-hint {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
 }
 
 .time-input-wrapper {
