@@ -1,62 +1,95 @@
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 let searchTimeout;
 
 function renderSearchResults(data, query) {
     const container = document.getElementById('searchResults');
     if (!container) return;
-    const hasResults = (data.doctors && data.doctors.length) || (data.services && data.services.length);
+
+    const doctors = data.doctors || [];
+    const services = data.services || [];
+    const hasResults = doctors.length || services.length;
+
+    const sections = [];
+
     if (!hasResults) {
+        sections.push(`
+            <div class="search-empty">
+                <i class="fas fa-search"></i>
+                <div>Ничего не найдено по запросу «${escapeHtml(query)}»</div>
+            </div>
+        `);
+    } else {
+        if (doctors.length) {
+            sections.push(`<div class="search-group-title">Врачи</div>`);
+            doctors.forEach((d) => {
+                sections.push(`
+                    <a class="search-result-item" href="${escapeHtml(d.url || '/catalog')}">
+                        <span class="search-result-icon"><i class="fas fa-user-md"></i></span>
+                        <span>
+                            <span class="search-result-name">${escapeHtml(d.name)}</span>
+                            <span class="search-result-meta">${escapeHtml(d.specialization || 'Врач')}</span>
+                        </span>
+                    </a>
+                `);
+            });
+        }
+        if (services.length) {
+            sections.push(`<div class="search-group-title">Услуги</div>`);
+            services.forEach((s) => {
+                const place = (s.subcatalogs && s.subcatalogs.length)
+                    ? s.subcatalogs.join(', ')
+                    : [s.catalog, s.subcatalog].filter(Boolean).join(' → ');
+                sections.push(`
+                    <a class="search-result-item" href="${escapeHtml(s.url || '/catalog')}">
+                        <span class="search-result-icon is-service"><i class="fas fa-stethoscope"></i></span>
+                        <span>
+                            <span class="search-result-name">${escapeHtml(s.name)}</span>
+                            <span class="search-result-meta">${escapeHtml(place)}${s.price ? ' · ' + escapeHtml(s.price) : ''}</span>
+                        </span>
+                    </a>
+                `);
+            });
+        }
+    }
+
+    container.innerHTML = `<div class="search-dropdown">${sections.join('')}</div>`;
+    container.style.display = 'block';
+}
+
+async function runLiveSearch(query) {
+    const container = document.getElementById('searchResults');
+    if (!container) return;
+
+    if (query.length < 2) {
         container.style.display = 'none';
         container.innerHTML = '';
         return;
     }
 
-    const items = [];
-    if (data.doctors) {
-        data.doctors.forEach(d => {
-            items.push(`
-                <a class="result-item" href="/catalog" style="display:flex;gap:.75rem;align-items:center;padding:.5rem .75rem;text-decoration:none;color:#333;">
-                    <i class="fas fa-user-md" style="color:#0d6efd;"></i>
-                    <div>
-                        <div style="font-weight:600;">${d.name}</div>
-                        <div style="font-size:12px;color:#6c757d;">${d.specialization ?? ''}</div>
-                    </div>
-                </a>
-            `);
-        });
+    try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        renderSearchResults(data, query);
+    } catch (e) {
+        container.style.display = 'none';
     }
-
-        if (data.services) {
-        data.services.forEach(s => {
-            const place = (s.subcatalogs && s.subcatalogs.length)
-                ? s.subcatalogs.join(', ')
-                : `${s.catalog ?? ''}${s.subcatalog ? ' • ' + s.subcatalog : ''}`;
-            const href = s.url || `/services/${encodeURIComponent(s.subcatalog_id || '')}`;
-            items.push(`
-                <a class="result-item" href="${href}" style="display:flex;gap:.75rem;align-items:center;padding:.5rem .75rem;text-decoration:none;color:#333;">
-                    <i class="fas fa-stethoscope" style="color:#20c997;"></i>
-                    <div>
-                        <div style="font-weight:600;">${s.name}</div>
-                        <div style="font-size:12px;color:#6c757d;">${place} — ${s.price}</div>
-                    </div>
-                </a>
-            `);
-        });
-    }
-
-    container.innerHTML = `
-        <div style="background:#fff;border:1px solid #e9ecef;border-radius:.5rem;box-shadow:0 10px 20px rgba(0,0,0,.06);max-height:360px;overflow:auto;">
-            ${items.join('')}
-        </div>
-    `;
-    container.style.display = 'block';
 }
 
 function setupLiveSearch() {
     const input = document.querySelector('.search-input');
+    const button = document.querySelector('.search-btn');
     const container = document.getElementById('searchResults');
     if (!input || !container) return;
 
-    input.addEventListener('input', () => {
+    const requestSearch = () => {
         const q = input.value.trim();
         clearTimeout(searchTimeout);
         if (q.length < 2) {
@@ -64,24 +97,36 @@ function setupLiveSearch() {
             container.innerHTML = '';
             return;
         }
-        searchTimeout = setTimeout(async () => {
-            try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-                const data = await res.json();
-                renderSearchResults(data, q);
-            } catch (e) {
-                container.style.display = 'none';
-            }
-        }, 250);
+        searchTimeout = setTimeout(() => runLiveSearch(q), 200);
+    };
+
+    input.addEventListener('input', requestSearch);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(searchTimeout);
+            runLiveSearch(input.value.trim());
+        }
+        if (e.key === 'Escape') {
+            container.style.display = 'none';
+        }
     });
 
+    if (button) {
+        button.setAttribute('type', 'button');
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearTimeout(searchTimeout);
+            runLiveSearch(input.value.trim());
+            input.focus();
+        });
+    }
+
     document.addEventListener('click', (e) => {
-        if (!container.contains(e.target) && !input.contains(e.target)) {
+        if (!container.contains(e.target) && !input.contains(e.target) && !button?.contains(e.target)) {
             container.style.display = 'none';
         }
     });
 }
 
 document.addEventListener('DOMContentLoaded', setupLiveSearch);
-
-

@@ -28,12 +28,12 @@
                     <img src="{{ Storage::url('icons/logo.png') }}" alt="A.S.K. MED">
                 </a>
 
-                <div class="search-container" style="position: relative;">
+                <div class="search-container">
                     <input type="text" class="search-input" placeholder="Поиск врачей и услуг..." autocomplete="off">
-                    <button class="search-btn">
+                    <button type="button" class="search-btn" aria-label="Найти">
                         <i class="fas fa-search"></i>
                     </button>
-                    <div id="searchResults" class="search-results" style="position:absolute; top:100%; left:0; right:0; z-index:1000; display:none;"></div>
+                    <div id="searchResults" class="search-results"></div>
                 </div>
 
                 <div class="mobile-menu" onclick="toggleMobileMenu()">

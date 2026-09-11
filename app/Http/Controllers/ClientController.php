@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Catalog;
 use App\Models\Service;
 use App\Models\SubCatalog;
-use App\Models\Schedule;
-use Illuminate\Http\Request;
+use App\Models\User;
 
 class ClientController extends Controller
 {
@@ -48,9 +47,42 @@ class ClientController extends Controller
     public function booking(Service $service)
     {
         $service->load(['subCatalogs.catalog']);
-        // Все активные графики, где доступна данная услуга
-        $schedules = $service->schedules()->with('user')->get();
+        $schedules = $service->schedules()
+            ->where('is_active', true)
+            ->with('user')
+            ->get();
+
         return view('client.booking', compact('service', 'schedules'));
+    }
+
+    public function doctor(User $user)
+    {
+        abort_unless($user->role == 4 && $user->is_active, 404);
+
+        $schedules = $user->schedules()
+            ->where('is_active', true)
+            ->with(['services' => function ($q) {
+                $q->where('services.is_active', true)->with(['subCatalogs.catalog']);
+            }])
+            ->get();
+
+        $services = $schedules
+            ->flatMap(function ($schedule) {
+                return $schedule->services->map(function ($service) use ($schedule) {
+                    $clone = clone $service;
+                    $clone->booking_schedule_id = $schedule->id;
+
+                    return $clone;
+                });
+            })
+            ->unique('id')
+            ->values();
+
+        return view('client.doctor', [
+            'doctor' => $user,
+            'services' => $services,
+            'schedules' => $schedules,
+        ]);
     }
 
     public function about()

@@ -15,6 +15,7 @@ Route::get('/catalog', [ClientController::class, 'catalog'])->name('catalog');
 Route::get('/sub-catalog/{id}', [ClientController::class, 'subCatalog'])->name('sub-catalog');
 Route::get('/services/{id}', [ClientController::class, 'services'])->name('services');
 Route::get('/service/{service}/booking', [ClientController::class, 'booking'])->name('service.booking');
+Route::get('/doctor/{user}', [ClientController::class, 'doctor'])->name('doctor.show');
 
 Route::post('/booking', [PublicBookingController::class, 'store'])->name('booking.store');
 Route::get('/my-appointment', [PublicBookingController::class, 'findForm'])->name('booking.find');

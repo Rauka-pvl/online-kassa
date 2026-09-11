@@ -4,6 +4,7 @@
     $subCatalog = $service->subCatalog;
     $catalog = $subCatalog->catalog ?? null;
     $startStep = old('client_name') || $errors->any() ? 3 : 1;
+    $selectedSchedule = old('schedule_id', request('schedule', $schedules->count() === 1 ? optional($schedules->first())->id : ''));
 @endphp
 
 @section('breadcrumb')
@@ -80,7 +81,7 @@
                                     <option value="{{ $schedule->id }}"
                                             data-unlimited="{{ $schedule->hasUnlimitedAppointments() ? '1' : '0' }}"
                                             data-interval="{{ $schedule->appointment_interval }}"
-                                            {{ old('schedule_id', $schedules->count() === 1 ? $schedule->id : '') == $schedule->id ? 'selected' : '' }}>
+                                            {{ (string) $selectedSchedule === (string) $schedule->id ? 'selected' : '' }}>
                                         {{ $schedule->user->name }}
                                     </option>
                                 @endforeach

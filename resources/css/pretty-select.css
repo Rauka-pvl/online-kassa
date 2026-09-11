@@ -1,0 +1,151 @@
+.pretty-select {
+    position: relative;
+    width: 100%;
+}
+
+.pretty-select-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    pointer-events: none !important;
+}
+
+.pretty-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 12px 16px;
+    border: 2px solid rgba(111, 171, 246, 0.28);
+    border-radius: 14px;
+    background: #fff;
+    color: #1f2937;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.pretty-select.is-sm .pretty-select-trigger {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border-radius: 10px;
+}
+
+.pretty-select-trigger:hover {
+    border-color: #6FABF6;
+}
+
+.pretty-select.is-open .pretty-select-trigger,
+.pretty-select-trigger:focus {
+    outline: none;
+    border-color: #4A8FE0;
+    box-shadow: 0 0 0 4px rgba(111, 171, 246, 0.18);
+}
+
+.pretty-select.is-disabled .pretty-select-trigger {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+.pretty-select-value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pretty-select-value.is-placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.pretty-select-caret {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    border-right: 2px solid #6FABF6;
+    border-bottom: 2px solid #6FABF6;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+.pretty-select.is-open .pretty-select-caret {
+    transform: rotate(225deg) translateY(-1px);
+}
+
+.pretty-select-menu {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    background: #fff;
+    border: 1px solid rgba(111, 171, 246, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+    padding: 8px;
+    max-height: 280px;
+    overflow: hidden;
+}
+
+.pretty-select.is-open .pretty-select-menu {
+    display: flex;
+    flex-direction: column;
+}
+
+.pretty-select-filter {
+    width: 100%;
+    border: 1px solid rgba(111, 171, 246, 0.3);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.pretty-select-filter:focus {
+    border-color: #6FABF6;
+}
+
+.pretty-select-options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    max-height: 220px;
+}
+
+.pretty-select-option {
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.pretty-select-option:hover,
+.pretty-select-option.is-active {
+    background: #edf6f9;
+    color: #1e40af;
+}
+
+.pretty-select-option.is-selected {
+    background: linear-gradient(135deg, #6FABF6, #4A8FE0);
+    color: #fff;
+    font-weight: 600;
+}
+
+.pretty-select-empty {
+    padding: 10px 12px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
