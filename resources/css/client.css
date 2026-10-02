@@ -2062,6 +2062,12 @@ img {
         display: flex;
     }
 
+    .nav-menu.active .nav-link {
+        text-align: center;
+        padding: 0.7rem 1rem;
+        border-radius: 12px;
+    }
+
     .nav-menu.active .header-cta {
         display: inline-flex;
         justify-content: center;
@@ -2078,14 +2084,45 @@ img {
         width: 100%;
     }
 
+    /* ---- Mobile: centered layout ---- */
+
+    .page-header {
+        text-align: center;
+    }
+
+    .page-subtitle {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .section-kicker {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
     .hero-section {
-        padding: 1.8rem 1.2rem;
+        padding: 2rem 1.3rem;
         border-radius: 24px;
+        text-align: center;
+    }
+
+    .hero-content {
+        margin: 0 auto;
+    }
+
+    .hero-kicker {
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .hero-features {
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
+    }
+
+    .hero-cta {
+        width: 100%;
+        justify-content: center;
     }
 
     .categories-grid,
@@ -2100,8 +2137,19 @@ img {
     .service-card-header,
     .service-info-card {
         flex-direction: column;
-        text-align: left;
-        align-items: flex-start;
+        text-align: center;
+        align-items: center;
+    }
+
+    .service-card-body,
+    .service-card-footer {
+        text-align: center;
+    }
+
+    .service-doctors-label,
+    .service-doctors-list,
+    .service-price-wrapper {
+        justify-content: center;
     }
 
     .service-card-footer,
@@ -2127,6 +2175,10 @@ img {
         justify-content: center;
     }
 
+    .form-section-title {
+        justify-content: center;
+    }
+
     .booking-step-tab span:last-child {
         display: none;
     }
@@ -2134,6 +2186,23 @@ img {
     .breadcrumb-list {
         width: 100%;
         border-radius: 16px;
+        justify-content: center;
+    }
+
+    .empty-state {
+        text-align: center;
+    }
+
+    .footer-content {
+        text-align: center;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+
+    .footer-bottom {
+        text-align: center;
     }
 }
 
