@@ -1,35 +1,35 @@
 :root {
     --font: 'Manrope', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     --serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-    --ink: #152536;
-    --muted: #5d6d7c;
-    --faint: #8b97a4;
-    --paper: #f3eee6;
-    --paper-2: #e8dfd1;
-    --surface: #fffdfa;
-    --line: rgba(21, 37, 54, 0.09);
+    --ink: #0d1f33;
+    --muted: #4e6478;
+    --faint: #7d90a3;
+    --paper: #eaf4fb;
+    --paper-2: #dcecf7;
+    --surface: #ffffff;
+    --line: rgba(13, 31, 51, 0.09);
     --brand: #d21f28;
     --brand-dark: #b11820;
-    --teal: #1a6b74;
-    --teal-soft: #e5f3f4;
-    --sky: #3b7fb8;
+    --teal: #0e7d8c;
+    --teal-soft: #e0f2f6;
+    --sky: #2f7fc4;
     --good: #1f8a62;
-    --primary-color: #1a6b74;
-    --primary-dark: #14545c;
-    --primary-light: #4aa0aa;
+    --primary-color: #0e7d8c;
+    --primary-dark: #0a5f6b;
+    --primary-light: #3aa7b4;
     --accent-color: #d21f28;
     --accent-dark: #b11820;
     --accent-light: #ef4a52;
     --bg-primary: var(--surface);
-    --bg-secondary: #f6f1ea;
-    --bg-dark: #101c28;
+    --bg-secondary: #eef6fc;
+    --bg-dark: #0d1f33;
     --text-primary: var(--ink);
     --text-secondary: var(--muted);
     --text-light: var(--faint);
     --border-color: var(--line);
-    --shadow-sm: 0 8px 24px rgba(21, 37, 54, 0.05);
-    --shadow-md: 0 18px 44px rgba(21, 37, 54, 0.08);
-    --shadow-lg: 0 28px 70px rgba(21, 37, 54, 0.12);
+    --shadow-sm: 0 8px 24px rgba(13, 31, 51, 0.06);
+    --shadow-md: 0 18px 44px rgba(13, 31, 51, 0.09);
+    --shadow-lg: 0 28px 70px rgba(13, 31, 51, 0.14);
     --radius-sm: 14px;
     --radius-md: 20px;
     --radius-lg: 28px;
@@ -51,9 +51,10 @@ body {
     line-height: 1.6;
     color: var(--ink);
     background:
-        radial-gradient(1200px 500px at 100% -10%, rgba(26, 107, 116, 0.08), transparent 50%),
-        radial-gradient(900px 420px at -10% 20%, rgba(210, 31, 40, 0.06), transparent 45%),
-        var(--paper);
+        radial-gradient(1100px 480px at 100% -10%, rgba(14, 125, 140, 0.14), transparent 55%),
+        radial-gradient(900px 420px at -10% 18%, rgba(47, 127, 196, 0.16), transparent 50%),
+        linear-gradient(180deg, #eaf4fb 0%, #f4fafe 55%, #eaf4fb 100%);
+    background-attachment: fixed;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -79,7 +80,7 @@ img {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: rgba(255, 253, 250, 0.86);
+    background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(18px);
     border-bottom: 1px solid var(--line);
 }
@@ -294,7 +295,7 @@ img {
     list-style: none;
     flex-wrap: wrap;
     padding: 10px 16px;
-    background: rgba(255, 253, 250, 0.7);
+    background: rgba(255, 255, 255, 0.75);
     border: 1px solid var(--line);
     border-radius: 999px;
     width: fit-content;
@@ -361,7 +362,7 @@ img {
     border-radius: 36px;
     color: var(--ink);
     background:
-        linear-gradient(135deg, rgba(255,253,250,0.92), rgba(229,243,244,0.88)),
+        linear-gradient(135deg, rgba(255,255,255,0.94), rgba(224,242,246,0.9)),
         #fff;
     border: 1px solid var(--line);
     box-shadow: var(--shadow-sm);
@@ -376,7 +377,7 @@ img {
     width: 340px;
     height: 340px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(210, 31, 40, 0.16), transparent 68%);
+    background: radial-gradient(circle, rgba(47, 127, 196, 0.2), transparent 68%);
 }
 
 .hero-content {
@@ -2144,6 +2145,52 @@ img {
     .page-title-main,
     .hero-title-main {
         font-size: 1.85rem;
+    }
+
+    .hero-section {
+        padding: 1.5rem 1.1rem;
+        border-radius: 22px;
+    }
+
+    .service-card-modern,
+    .booking-form-wrapper,
+    .service-info-card,
+    .detail-card {
+        border-radius: 20px;
+    }
+
+    .booking-steps {
+        gap: 0.4rem;
+    }
+
+    .booking-step-num {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+
+    .search-input {
+        font-size: 16px; /* no iOS zoom on focus */
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 380px) {
+    .page-title-main,
+    .hero-title-main {
+        font-size: 1.6rem;
+    }
+
+    .hero-kicker {
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+    }
+
+    .service-price-value {
+        font-size: 1.15rem;
     }
 }
 
