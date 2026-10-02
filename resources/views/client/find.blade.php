@@ -9,8 +9,9 @@
 @section('content')
 <div class="booking-page">
     <div class="page-header">
-        <h1 class="page-title-main">Моя запись</h1>
-        <p class="page-subtitle">Введите телефон и код записи с экрана подтверждения, например ASK-12</p>
+        <span class="section-kicker">Пациентам</span>
+        <h1 class="page-title-main">Найти запись</h1>
+        <p class="page-subtitle">Телефон и код с экрана подтверждения, например ASK-12. Можно отменить визит до начала приёма.</p>
     </div>
 
     <div class="booking-container">

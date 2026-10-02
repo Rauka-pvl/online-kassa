@@ -1,7 +1,7 @@
 @extends('layouts.client')
 
 @php
-    $subCatalog = $service->subCatalog;
+    $subCatalog = $contextSubCatalog ?? $service->subCatalog;
     $catalog = $subCatalog->catalog ?? null;
     $startStep = old('client_name') || $errors->any() ? 3 : 1;
     $selectedSchedule = old('schedule_id', request('schedule', $schedules->count() === 1 ? optional($schedules->first())->id : ''));
@@ -26,8 +26,9 @@
 @section('content')
 <div class="booking-page">
     <div class="page-header">
+        <span class="section-kicker">Онлайн-запись</span>
         <h1 class="page-title-main">Запись на приём</h1>
-        <p class="page-subtitle">Три простых шага — без онлайн-оплаты</p>
+        <p class="page-subtitle">Три шага: врач, время, ваши данные. Оплата — в клинике.</p>
     </div>
 
     <div class="booking-container">

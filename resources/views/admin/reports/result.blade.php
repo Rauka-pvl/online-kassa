@@ -47,8 +47,8 @@
                                 <td>{{ $appointment->formatted_date }}</td>
                                 <td>{{ $appointment->client_name }}</td>
                                 <td>{{ $appointment->schedule->user->name }}</td>
-                                <td>{{ $appointment->service->name }}</td>
-                                <td>{{ $appointment->service->formatted_price }}</td>
+                                <td>{{ optional($appointment->service)->name ?? 'Услуга удалена' }}</td>
+                                <td>{{ optional($appointment->service)->formatted_price ?? number_format($appointment->total_price, 0, '.', ' ') . ' ₸' }}</td>
                                 <td>{{ $appointment->status_in_russian }}</td>
                             </tr>
                         @empty

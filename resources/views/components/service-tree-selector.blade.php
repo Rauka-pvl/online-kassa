@@ -173,12 +173,16 @@ function loadSubcatalogs(catalogId) {
             const item = document.createElement('button');
             item.className = 'list-group-item list-group-item-action subcatalog-item';
             item.setAttribute('data-subcatalog-id', subcatalog.id);
-            item.onclick = () => loadServices(subcatalog.id);
+            item.onclick = () => loadServices(subcatalog.id, catalog.id);
+
+            const uniqueCount = subcatalog.services
+                ? new Set(subcatalog.services.map(s => s.id)).size
+                : 0;
 
             item.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center">
                     <span>${subcatalog.name}</span>
-                    <small class="text-muted">${subcatalog.services ? subcatalog.services.length : 0}</small>
+                    <small class="text-muted">${uniqueCount}</small>
                 </div>
             `;
 
@@ -192,7 +196,7 @@ function loadSubcatalogs(catalogId) {
     document.getElementById('servicesList').innerHTML = '<div class="list-group-item text-muted text-center py-3">Выберите подкаталог</div>';
 }
 
-function loadServices(subcatalogId) {
+function loadServices(subcatalogId, catalogId) {
     // Активируем выбранный подкаталог
     document.querySelectorAll('.subcatalog-item').forEach(item => {
         item.classList.remove('active');
@@ -201,10 +205,21 @@ function loadServices(subcatalogId) {
 
     // Находим услуги
     let services = [];
+    let catalogName = '';
+    let subcatalogName = '';
     catalogs.forEach(catalog => {
         catalog.sub_catalogs.forEach(subcatalog => {
             if (subcatalog.id === subcatalogId && subcatalog.services) {
-                services = subcatalog.services.filter(service => service.is_active);
+                const seen = new Set();
+                services = subcatalog.services.filter(service => {
+                    if (!service.is_active || seen.has(service.id)) {
+                        return false;
+                    }
+                    seen.add(service.id);
+                    return true;
+                });
+                catalogName = catalog.name;
+                subcatalogName = subcatalog.name;
             }
         });
     });
@@ -245,8 +260,8 @@ function loadServices(subcatalogId) {
                 name: service.name,
                 price: service.price,
                 description: service.description || '',
-                subcatalog: subcatalog.name,
-                catalog: catalog.name
+                subcatalog: subcatalogName,
+                catalog: catalogName
             };
         });
     } else {

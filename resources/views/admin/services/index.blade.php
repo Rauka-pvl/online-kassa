@@ -131,15 +131,30 @@
                                        class="btn btn-sm btn-outline-primary" title="Редактировать">
                                         ✏️
                                     </a>
-                                    <form action="{{ route('admin.services.destroy', $service) }}"
-                                          method="POST" class="d-inline"
-                                          onsubmit="return confirm('Вы уверены, что хотите удалить эту услугу?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">
-                                            🗑️
-                                        </button>
-                                    </form>
+                                    @if(($service->appointments_count ?? 0) > 0)
+                                        @if($service->is_active)
+                                            <form action="{{ route('admin.services.destroy', $service) }}"
+                                                  method="POST" class="d-inline"
+                                                  onsubmit="return confirm('У услуги есть записи. Деактивировать её вместо удаления?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="deactivate" value="1">
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Деактивировать">
+                                                    ⏸️
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @else
+                                        <form action="{{ route('admin.services.destroy', $service) }}"
+                                              method="POST" class="d-inline"
+                                              onsubmit="return confirm('Вы уверены, что хотите удалить эту услугу?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">
+                                                🗑️
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

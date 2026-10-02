@@ -112,4 +112,107 @@ class Service extends Model
             return trim(($catalogName ? $catalogName . ' → ' : '') . $sub->name);
         });
     }
+
+    /**
+     * Resolve booking/search context to a linked subcatalog.
+     */
+    public function resolveSubCatalog(?int $subCatalogId = null): ?SubCatalog
+    {
+        $links = $this->relationLoaded('subCatalogs')
+            ? $this->subCatalogs
+            : $this->subCatalogs()->with('catalog')->get();
+
+        if ($subCatalogId) {
+            $match = $links->firstWhere('id', $subCatalogId);
+            if ($match) {
+                if (!$match->relationLoaded('catalog')) {
+                    $match->load('catalog');
+                }
+
+                return $match;
+            }
+
+            return null;
+        }
+
+        if ($links->count() === 1) {
+            $only = $links->first();
+            if ($only && !$only->relationLoaded('catalog')) {
+                $only->load('catalog');
+            }
+
+            return $only;
+        }
+
+        return null;
+    }
+
+    /**
+     * Active doctor schedules for this service, optionally scoped to a direction.
+     */
+    public function activeSchedulesForSubCatalog(?int $subCatalogId = null): Collection
+    {
+        $schedules = $this->schedules()
+            ->where('schedules.is_active', true)
+            ->whereHas('user', function ($q) {
+                $q->where('role', 4)->where('is_active', true);
+            })
+            ->with(['user', 'services' => function ($q) {
+                $q->where('services.is_active', true)->with(['subCatalogs.catalog']);
+            }])
+            ->get();
+
+        if (!$subCatalogId) {
+            return $schedules->unique('user_id')->values();
+        }
+
+        $subCatalog = $this->resolveSubCatalog($subCatalogId);
+        if (!$subCatalog) {
+            return collect();
+        }
+
+        return $schedules
+            ->filter(fn (Schedule $schedule) => $this->scheduleMatchesSubCatalog($schedule, $subCatalog))
+            ->unique('user_id')
+            ->values();
+    }
+
+    public function scheduleMatchesSubCatalog(Schedule $schedule, SubCatalog $subCatalog): bool
+    {
+        $services = $schedule->relationLoaded('services')
+            ? $schedule->services
+            : $schedule->services()->where('services.is_active', true)->with('subCatalogs')->get();
+
+        $hasOtherInDirection = $services
+            ->where('id', '!=', $this->id)
+            ->contains(function (Service $svc) use ($subCatalog) {
+                $links = $svc->relationLoaded('subCatalogs')
+                    ? $svc->subCatalogs
+                    : $svc->subCatalogs()->get();
+
+                return $links->contains('id', $subCatalog->id);
+            });
+
+        if ($hasOtherInDirection) {
+            return true;
+        }
+
+        $specialization = mb_strtolower(trim((string) optional($schedule->user)->specialization));
+        if ($specialization === '') {
+            return false;
+        }
+
+        $candidates = array_filter([
+            mb_strtolower(trim($subCatalog->name)),
+            mb_strtolower(trim((string) optional($subCatalog->catalog)->name)),
+        ]);
+
+        foreach ($candidates as $name) {
+            if ($name !== '' && (str_contains($specialization, $name) || str_contains($name, $specialization))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

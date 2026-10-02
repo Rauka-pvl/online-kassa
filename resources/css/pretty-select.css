@@ -22,16 +22,16 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 12px 16px;
-    border: 2px solid rgba(111, 171, 246, 0.28);
+    padding: 13px 15px;
+    border: 1px solid rgba(21, 37, 54, 0.1);
     border-radius: 14px;
     background: #fff;
-    color: #1f2937;
+    color: #152536;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pretty-select.is-sm .pretty-select-trigger {
@@ -41,20 +41,20 @@
 }
 
 .pretty-select-trigger:hover {
-    border-color: #6FABF6;
+    border-color: #1a6b74;
 }
 
 .pretty-select.is-open .pretty-select-trigger,
 .pretty-select-trigger:focus {
     outline: none;
-    border-color: #4A8FE0;
-    box-shadow: 0 0 0 4px rgba(111, 171, 246, 0.18);
+    border-color: #1a6b74;
+    box-shadow: 0 0 0 4px rgba(26, 107, 116, 0.12);
 }
 
 .pretty-select.is-disabled .pretty-select-trigger {
     opacity: 0.6;
     cursor: not-allowed;
-    background: #f8fafc;
+    background: #f6f1ea;
 }
 
 .pretty-select-value {
@@ -66,7 +66,7 @@
 }
 
 .pretty-select-value.is-placeholder {
-    color: #94a3b8;
+    color: #8b97a4;
     font-weight: 400;
 }
 
@@ -74,8 +74,8 @@
     width: 10px;
     height: 10px;
     flex-shrink: 0;
-    border-right: 2px solid #6FABF6;
-    border-bottom: 2px solid #6FABF6;
+    border-right: 2px solid #1a6b74;
+    border-bottom: 2px solid #1a6b74;
     transform: rotate(45deg) translateY(-2px);
     transition: transform 0.2s ease;
 }
@@ -89,9 +89,9 @@
     position: fixed;
     z-index: 2000;
     background: #fff;
-    border: 1px solid rgba(111, 171, 246, 0.25);
+    border: 1px solid rgba(21, 37, 54, 0.08);
     border-radius: 16px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+    box-shadow: 0 18px 40px rgba(21, 37, 54, 0.12);
     padding: 8px;
     max-height: 280px;
     overflow: hidden;
@@ -104,7 +104,7 @@
 
 .pretty-select-filter {
     width: 100%;
-    border: 1px solid rgba(111, 171, 246, 0.3);
+    border: 1px solid rgba(21, 37, 54, 0.1);
     border-radius: 10px;
     padding: 8px 12px;
     margin-bottom: 6px;
@@ -113,7 +113,7 @@
 }
 
 .pretty-select-filter:focus {
-    border-color: #6FABF6;
+    border-color: #1a6b74;
 }
 
 .pretty-select-options {
@@ -134,18 +134,18 @@
 
 .pretty-select-option:hover,
 .pretty-select-option.is-active {
-    background: #edf6f9;
-    color: #1e40af;
+    background: #e5f3f4;
+    color: #14545c;
 }
 
 .pretty-select-option.is-selected {
-    background: linear-gradient(135deg, #6FABF6, #4A8FE0);
+    background: #152536;
     color: #fff;
     font-weight: 600;
 }
 
 .pretty-select-empty {
     padding: 10px 12px;
-    color: #94a3b8;
+    color: #8b97a4;
     font-size: 0.9rem;
 }

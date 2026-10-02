@@ -50,28 +50,64 @@ class SearchController extends Controller
             })
             ->with(['subCatalogs.catalog'])
             ->select(['id', 'name', 'price'])
-            ->limit(10)
+            ->limit(20)
             ->get()
-            ->map(function ($service) {
-                $labels = $service->subCatalogs->map(function ($sub) {
-                    $catalog = optional($sub->catalog)->name;
+            ->flatMap(function (Service $service) {
+                $subs = $service->subCatalogs;
 
-                    return trim(($catalog ? $catalog . ' → ' : '') . $sub->name);
-                })->filter()->values();
+                if ($subs->isEmpty()) {
+                    return [[
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'price' => $service->formatted_price,
+                        'subcatalog_id' => null,
+                        'catalog' => null,
+                        'subcatalog' => null,
+                        'subcatalogs' => [],
+                        'url' => route('service.booking', $service),
+                    ]];
+                }
 
-                $primary = $service->subCatalog;
+                if ($subs->count() === 1) {
+                    $sub = $subs->first();
+                    $catalogName = optional($sub->catalog)->name;
 
-                return [
-                    'id' => $service->id,
-                    'name' => $service->name,
-                    'price' => $service->formatted_price,
-                    'subcatalog_id' => $primary?->id,
-                    'catalog' => optional(optional($primary)->catalog)->name,
-                    'subcatalog' => optional($primary)->name,
-                    'subcatalogs' => $labels->all(),
-                    'url' => route('service.booking', $service),
-                ];
-            });
+                    return [[
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'price' => $service->formatted_price,
+                        'subcatalog_id' => $sub->id,
+                        'catalog' => $catalogName,
+                        'subcatalog' => $sub->name,
+                        'subcatalogs' => [trim(($catalogName ? $catalogName . ' → ' : '') . $sub->name)],
+                        'url' => route('service.booking', [
+                            'service' => $service,
+                            'sub_catalog' => $sub->id,
+                        ]),
+                    ]];
+                }
+
+                return $subs->map(function ($sub) use ($service) {
+                    $catalogName = optional($sub->catalog)->name;
+                    $direction = $catalogName ?: $sub->name;
+
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name . ' · ' . $direction,
+                        'price' => $service->formatted_price,
+                        'subcatalog_id' => $sub->id,
+                        'catalog' => $catalogName,
+                        'subcatalog' => $sub->name,
+                        'subcatalogs' => [trim(($catalogName ? $catalogName . ' → ' : '') . $sub->name)],
+                        'url' => route('service.booking', [
+                            'service' => $service,
+                            'sub_catalog' => $sub->id,
+                        ]),
+                    ];
+                });
+            })
+            ->take(15)
+            ->values();
 
         return response()->json([
             'doctors' => $doctors,

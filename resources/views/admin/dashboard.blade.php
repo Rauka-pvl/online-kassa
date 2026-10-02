@@ -182,7 +182,7 @@
                             <div class="list-group-item d-flex justify-content-between align-items-start">
                                 <div class="ms-2 me-auto">
                                     <div class="fw-bold">{{ $appointment->client_name }}</div>
-                                    <small>{{ $appointment->service->name }} - {{ $appointment->schedule->user->name }}</small>
+                                    <small>{{ optional($appointment->service)->name ?? 'Услуга удалена' }} - {{ optional(optional($appointment->schedule)->user)->name ?? '—' }}</small>
                                     <br><small class="text-muted">{{ $appointment->formatted_date }}</small>
                                 </div>
                                 <span class="badge bg-primary rounded-pill">{{ $appointment->status_in_russian }}</span>

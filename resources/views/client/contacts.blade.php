@@ -9,8 +9,9 @@
 @section('content')
 <div class="contacts-page">
     <div class="page-header">
-        <h1 class="page-title-main">Контакты</h1>
-        <p class="page-subtitle">Свяжитесь с нами удобным для вас способом</p>
+        <span class="section-kicker">Связь</span>
+        <h1 class="page-title-main">Как нас найти</h1>
+        <p class="page-subtitle">Центр города, рядом с ТД «Манакбай». Звоните или приезжайте.</p>
     </div>
 
     <div class="contacts-content">

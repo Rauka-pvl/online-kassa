@@ -874,25 +874,29 @@ function updateCatalogCheckbox(catalogId) {
 }
 
 function updateCounts(catalogId) {
-    // Обновляем счетчик каталога
+    // Unique service ids for catalog badge
     const catalogServices = document.querySelectorAll(`[data-catalog="${catalogId}"].service-checkbox`);
-    const checkedCatalogServices = Array.from(catalogServices).filter(cb => cb.checked).length;
+    const checkedCatalogIds = new Set(
+        Array.from(catalogServices).filter(cb => cb.checked).map(cb => cb.getAttribute('data-service') || cb.value)
+    );
     const catalogCount = document.getElementById('catalog_count_' + catalogId);
     if (catalogCount) {
-        catalogCount.textContent = checkedCatalogServices;
-        catalogCount.style.display = checkedCatalogServices > 0 ? 'inline' : 'none';
+        catalogCount.textContent = checkedCatalogIds.size;
+        catalogCount.style.display = checkedCatalogIds.size > 0 ? 'inline' : 'none';
     }
 
-    // Обновляем счетчики подкаталогов
+    // Unique within each subcatalog (normally 1:1, but keep consistent)
     const subCatalogs = document.querySelectorAll(`[data-catalog="${catalogId}"].subcatalog-checkbox`);
     subCatalogs.forEach(subCatalogCheckbox => {
         const subCatalogId = subCatalogCheckbox.id.replace('subcatalog_', '');
         const subCatalogServices = document.querySelectorAll(`[data-subcatalog="${subCatalogId}"].service-checkbox`);
-        const checkedSubCatalogServices = Array.from(subCatalogServices).filter(cb => cb.checked).length;
+        const checkedSubIds = new Set(
+            Array.from(subCatalogServices).filter(cb => cb.checked).map(cb => cb.getAttribute('data-service') || cb.value)
+        );
         const subCatalogCount = document.getElementById('subcatalog_count_' + subCatalogId);
         if (subCatalogCount) {
-            subCatalogCount.textContent = checkedSubCatalogServices;
-            subCatalogCount.style.display = checkedSubCatalogServices > 0 ? 'inline' : 'none';
+            subCatalogCount.textContent = checkedSubIds.size;
+            subCatalogCount.style.display = checkedSubIds.size > 0 ? 'inline' : 'none';
         }
     });
 }

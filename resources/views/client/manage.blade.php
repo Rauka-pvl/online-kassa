@@ -68,7 +68,7 @@
                 <div class="detail-icon"><i class="fas fa-stethoscope"></i></div>
                 <div class="detail-content">
                     <span class="detail-label">Услуга</span>
-                    <span class="detail-value">{{ $appointment->service->name }}</span>
+                    <span class="detail-value">{{ optional($appointment->service)->name ?? 'Услуга недоступна' }}</span>
                 </div>
             </div>
             <div class="detail-item">
@@ -98,7 +98,7 @@
                 <div class="detail-icon"><i class="fas fa-clinic-medical"></i></div>
                 <div class="detail-content">
                     <span class="detail-label">К оплате в клинике</span>
-                    <span class="detail-value price">{{ $appointment->service->formatted_price }}</span>
+                    <span class="detail-value price">{{ optional($appointment->service)->formatted_price ?? number_format($appointment->total_price, 0, '.', ' ') . ' ₸' }}</span>
                 </div>
             </div>
         </div>

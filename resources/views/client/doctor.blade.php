@@ -38,7 +38,11 @@
                         <span class="service-price-label">К оплате в клинике:</span>
                         <span class="service-price-value">{{ $service->formatted_price }}</span>
                     </div>
-                    <a href="{{ route('service.booking', ['service' => $service, 'schedule' => $service->booking_schedule_id]) }}"
+                    <a href="{{ route('service.booking', array_filter([
+                            'service' => $service,
+                            'schedule' => $service->booking_schedule_id,
+                            'sub_catalog' => $service->booking_sub_catalog_id ?? null,
+                        ])) }}"
                        class="service-book-btn">
                         <span>Записаться</span>
                         <i class="fas fa-calendar-check"></i>

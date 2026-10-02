@@ -193,7 +193,7 @@
                                         {{ $appointment->schedule->user->name }}
                                     </td>
                                     <td>
-                                        {{ $appointment->service->name }}
+                                        {{ optional($appointment->service)->name ?? 'Услуга удалена' }}
                                     </td>
                                     <td>
                                         <strong

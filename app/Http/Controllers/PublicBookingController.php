@@ -35,9 +35,16 @@ class PublicBookingController extends Controller
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
+        abort_unless($service->is_active, 404);
 
         $appointment = DB::transaction(function () use ($validated, $service) {
             $schedule = Schedule::lockForUpdate()->findOrFail($validated['schedule_id']);
+
+            if (!$schedule->services()->where('services.id', $service->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'schedule_id' => 'Выбранный врач не оказывает эту услугу',
+                ]);
+            }
 
             Appointment::where('schedule_id', $schedule->id)
                 ->whereDate('appointment_date', $validated['date'])

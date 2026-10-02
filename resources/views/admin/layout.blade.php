@@ -12,47 +12,53 @@
     <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="{{ Storage::url('icons/back.jpg') }}">
 
-    <!-- Fonts -->
-    <link rel="dns-prefetch" href="//fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-
-    <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <style>
+        body {
+            font-family: Manrope, system-ui, sans-serif;
+            background: #f3eee6;
+        }
+        .navbar.bg-dark {
+            background: #101c28 !important;
+        }
         .sidebar {
             min-height: calc(100vh - 56px);
-            background-color: #f8f9fa;
-            border-right: 1px solid #dee2e6;
+            background-color: #fffdfa;
+            border-right: 1px solid rgba(21, 37, 54, 0.08);
         }
         .sidebar .nav-link {
-            color: #6c757d;
-            padding: 0.75rem 1rem;
-            border-radius: 0;
+            color: #5d6d7c;
+            padding: 0.7rem 1rem;
+            margin: 0 0.6rem 0.25rem;
+            border-radius: 12px;
         }
         .sidebar .nav-link:hover {
-            background-color: #e9ecef;
-            color: #495057;
+            background-color: #e5f3f4;
+            color: #1a6b74;
         }
         .sidebar .nav-link.active {
-            background-color: #007bff;
+            background-color: #152536;
             color: white;
         }
         .content-wrapper {
             min-height: calc(100vh - 56px);
         }
         .stats-card {
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #1a6b74;
+            border-radius: 14px;
         }
         .stats-card.success {
-            border-left-color: #28a745;
+            border-left-color: #1f8a62;
         }
         .stats-card.info {
-            border-left-color: #17a2b8;
+            border-left-color: #3b7fb8;
         }
         .stats-card.warning {
-            border-left-color: #ffc107;
+            border-left-color: #d21f28;
         }
         .staff-toast-container {
             position: fixed;
@@ -66,15 +72,15 @@
         }
         .staff-toast {
             background: #fff;
-            border-left: 4px solid #0d6efd;
-            box-shadow: 0 8px 24px rgba(0,0,0,.15);
-            border-radius: 8px;
+            border-left: 4px solid #1a6b74;
+            box-shadow: 0 12px 28px rgba(21, 37, 54, .12);
+            border-radius: 12px;
             padding: 12px 14px;
             cursor: pointer;
             animation: staffToastIn .2s ease;
         }
         .staff-toast.is-cancelled {
-            border-left-color: #dc3545;
+            border-left-color: #d21f28;
         }
         .staff-toast-title {
             font-weight: 700;

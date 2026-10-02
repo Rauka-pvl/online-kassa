@@ -218,7 +218,7 @@ class AdminController extends Controller
     // SERVICES CRUD
     public function services(Request $request): View
     {
-        $query = Service::with(['subCatalogs.catalog']);
+        $query = Service::with(['subCatalogs.catalog'])->withCount('appointments');
 
         // Поиск
         if ($request->filled('search')) {
@@ -331,9 +331,24 @@ class AdminController extends Controller
         return redirect()->route('admin.services')->with('success', 'Услуга успешно обновлена');
     }
 
-    public function destroyService(Service $service): RedirectResponse
+    public function destroyService(Request $request, Service $service): RedirectResponse
     {
+        if ($service->appointments()->exists()) {
+            if ($request->boolean('deactivate')) {
+                $service->update(['is_active' => false]);
+
+                return redirect()->route('admin.services')
+                    ->with('success', 'Услуга деактивирована: удаление невозможно, пока есть записи.');
+            }
+
+            return redirect()->route('admin.services')
+                ->with('error', 'Нельзя удалить услугу с существующими записями. Деактивируйте её или сначала перенесите записи.');
+        }
+
+        $service->schedules()->detach();
+        $service->subCatalogs()->detach();
         $service->delete();
+
         return redirect()->route('admin.services')->with('success', 'Услуга успешно удалена');
     }
 

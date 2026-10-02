@@ -9,16 +9,20 @@
 @section('content')
 <div class="catalog-page">
     <div class="page-header">
-        <h1 class="page-title-main">Каталог услуг</h1>
-        <p class="page-subtitle">Выберите интересующее вас направление медицины</p>
+        <span class="section-kicker">Каталог</span>
+        <h1 class="page-title-main">Услуги клиники</h1>
+        <p class="page-subtitle">Выберите направление, затем услугу и свободное время врача</p>
     </div>
 
+    @php
+        $icons = ['fa-heartbeat', 'fa-user-md', 'fa-flask', 'fa-notes-medical', 'fa-hand-holding-medical', 'fa-spa'];
+    @endphp
     <div class="catalogs-container">
         @forelse($catalogs as $catalog)
             <div class="catalog-card" id="catalog-{{ $catalog->id }}">
                 <div class="catalog-card-header">
                     <div class="catalog-icon-wrapper">
-                        <i class="fas fa-stethoscope"></i>
+                        <i class="fas {{ $icons[$loop->index % count($icons)] }}"></i>
                     </div>
                     <div class="catalog-header-content">
                         <h2 class="catalog-title">{{ $catalog->name }}</h2>

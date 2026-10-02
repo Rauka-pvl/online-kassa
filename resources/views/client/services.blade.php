@@ -67,7 +67,7 @@
                         <span class="service-price-value">{{ $service->formatted_price }}</span>
                     </div>
                     @if($service->schedules->count() > 0)
-                        <a href="{{ route('service.booking', $service) }}" class="service-book-btn">
+                        <a href="{{ route('service.booking', ['service' => $service, 'sub_catalog' => $subCatalog->id]) }}" class="service-book-btn">
                             <span>Записаться</span>
                             <i class="fas fa-calendar-check"></i>
                         </a>

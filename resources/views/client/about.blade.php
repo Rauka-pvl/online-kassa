@@ -9,8 +9,9 @@
 @section('content')
 <div class="about-page">
     <div class="page-header">
-        <h1 class="page-title-main">О медицинском центре A.S.K. MED</h1>
-        <p class="page-subtitle">Ваше здоровье — наш приоритет</p>
+        <span class="section-kicker">О клинике</span>
+        <h1 class="page-title-main">A.S.K. MED — один адрес для диагностики и лечения</h1>
+        <p class="page-subtitle">Павлодар, работаем 7 дней в неделю. Ваше здоровье — наш приоритет.</p>
     </div>
 
     <div class="about-content">
